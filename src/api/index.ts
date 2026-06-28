@@ -113,6 +113,13 @@ export const Api = {
     return api<{ profile: ApiProfile }>('/profile/settings', { method: 'PATCH', body: patch });
   },
 
+  setPushToken(expoPushToken: string | null) {
+    return api<{ profile: ApiProfile }>('/profile/push-token', {
+      method: 'POST',
+      body: { expoPushToken },
+    });
+  },
+
   // --- Plan & stats ---
   plan() {
     return api<ApiPlan>('/plan');

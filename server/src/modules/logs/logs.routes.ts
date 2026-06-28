@@ -19,7 +19,7 @@ const createSchema = z.object({
 logsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    res.json({ logs: logsRepo.list(req.userId!) });
+    res.json({ logs: await logsRepo.list(req.userId!) });
   })
 );
 
@@ -27,7 +27,7 @@ logsRouter.post(
   '/',
   validate({ body: createSchema }),
   asyncHandler(async (req, res) => {
-    const log = logsRepo.create(req.userId!, req.body);
+    const log = await logsRepo.create(req.userId!, req.body);
     res.status(201).json({ log });
   })
 );
@@ -35,7 +35,7 @@ logsRouter.post(
 logsRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    const ok = logsRepo.remove(req.userId!, req.params.id);
+    const ok = await logsRepo.remove(req.userId!, req.params.id);
     if (!ok) throw ApiError.notFound('Log not found');
     res.json({ ok: true });
   })

@@ -12,21 +12,21 @@ workoutsRouter.get(
   validate({ query: z.object({ muscle: z.string().optional() }) }),
   asyncHandler(async (req, res) => {
     const muscle = req.query.muscle as string | undefined;
-    res.json({ workouts: workoutsRepo.list(muscle) });
+    res.json({ workouts: await workoutsRepo.list(muscle) });
   })
 );
 
 workoutsRouter.get(
   '/exercises',
   asyncHandler(async (_req, res) => {
-    res.json({ exercises: workoutsRepo.listExercises() });
+    res.json({ exercises: await workoutsRepo.listExercises() });
   })
 );
 
 workoutsRouter.get(
   '/:slug',
   asyncHandler(async (req, res) => {
-    const workout = workoutsRepo.bySlug(req.params.slug);
+    const workout = await workoutsRepo.bySlug(req.params.slug);
     if (!workout) throw ApiError.notFound('Workout not found');
     res.json({ workout });
   })

@@ -10,10 +10,10 @@ planRouter.use(requireAuth);
 planRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const profile = profilesRepo.get(req.userId!);
+    const profile = await profilesRepo.get(req.userId!);
     if (!profile) throw ApiError.notFound('Profile not found');
 
-    const schedule = planService.recommend(profile);
+    const schedule = await planService.recommend(profile);
     res.json({
       title: `Your ${planService.goalLabel(profile.goal)} Plan`,
       goalLabel: planService.goalLabel(profile.goal),

@@ -1,7 +1,4 @@
--- Forge schema (SQLite). Applied idempotently on startup.
-
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
+-- Forge schema (Postgres). Applied idempotently on startup.
 
 CREATE TABLE IF NOT EXISTS users (
   id            TEXT PRIMARY KEY,
@@ -18,16 +15,17 @@ CREATE TABLE IF NOT EXISTS profiles (
   goal             TEXT,
   level            TEXT,
   body_type        TEXT,
-  target_areas     TEXT NOT NULL DEFAULT '[]', -- JSON array
+  target_areas     TEXT NOT NULL DEFAULT '[]',
   equipment        TEXT,
   days_per_week    INTEGER NOT NULL DEFAULT 3,
   age_range        TEXT,
-  height_cm        REAL,
-  weight_kg        REAL,
-  target_weight_kg REAL,
+  height_cm        DOUBLE PRECISION,
+  weight_kg        DOUBLE PRECISION,
+  target_weight_kg DOUBLE PRECISION,
   has_onboarded    INTEGER NOT NULL DEFAULT 0,
   reminders        INTEGER NOT NULL DEFAULT 1,
   units            TEXT NOT NULL DEFAULT 'metric',
+  expo_push_token  TEXT,
   created_at       TEXT NOT NULL,
   updated_at       TEXT NOT NULL
 );
@@ -71,7 +69,7 @@ CREATE TABLE IF NOT EXISTS workout_logs (
   user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   workout_id    TEXT,
   workout_title TEXT NOT NULL,
-  date          TEXT NOT NULL, -- YYYY-MM-DD
+  date          TEXT NOT NULL,
   duration_min  INTEGER NOT NULL,
   kcal          INTEGER NOT NULL,
   created_at    TEXT NOT NULL
@@ -81,8 +79,8 @@ CREATE INDEX IF NOT EXISTS idx_logs_user_date ON workout_logs(user_id, date);
 CREATE TABLE IF NOT EXISTS weight_entries (
   id        TEXT PRIMARY KEY,
   user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  date      TEXT NOT NULL, -- YYYY-MM-DD
-  weight_kg REAL NOT NULL,
+  date      TEXT NOT NULL,
+  weight_kg DOUBLE PRECISION NOT NULL,
   UNIQUE (user_id, date)
 );
 CREATE INDEX IF NOT EXISTS idx_weights_user_date ON weight_entries(user_id, date);

@@ -1,4 +1,4 @@
-import { db } from '../../db/database.js';
+import { db } from '../../db/index.js';
 import { uid } from '../../lib/crypto.js';
 import type { Profile, User } from '../../types.js';
 
@@ -21,29 +21,29 @@ const toUser = (r: UserRow): User => ({
 });
 
 export const usersRepo = {
-  create(email: string, passwordHash: string, name: string): User {
+  async create(email: string, passwordHash: string, name: string): Promise<User> {
     const id = uid();
     const ts = now();
-    db.prepare(
+    await db.run(
       `INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(id, email, passwordHash, name, ts, ts);
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, email, passwordHash, name, ts, ts]
+    );
     // Create an empty profile alongside the user.
-    db.prepare(
-      `INSERT INTO profiles (user_id, created_at, updated_at) VALUES (?, ?, ?)`
-    ).run(id, ts, ts);
+    await db.run(
+      `INSERT INTO profiles (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
+      [id, ts, ts]
+    );
     return { id, email, name, createdAt: ts };
   },
 
-  findByEmail(email: string): (UserRow & { user: User }) | null {
-    const row = db.prepare(`SELECT * FROM users WHERE email = ?`).get(email) as
-      | UserRow
-      | undefined;
+  async findByEmail(email: string): Promise<(UserRow & { user: User }) | null> {
+    const row = await db.one<UserRow>(`SELECT * FROM users WHERE email = ?`, [email]);
     return row ? { ...row, user: toUser(row) } : null;
   },
 
-  findById(id: string): User | null {
-    const row = db.prepare(`SELECT * FROM users WHERE id = ?`).get(id) as UserRow | undefined;
+  async findById(id: string): Promise<User | null> {
+    const row = await db.one<UserRow>(`SELECT * FROM users WHERE id = ?`, [id]);
     return row ? toUser(row) : null;
   },
 };
@@ -64,6 +64,7 @@ interface ProfileRow {
   has_onboarded: number;
   reminders: number;
   units: string;
+  expo_push_token: string | null;
 }
 
 const toProfile = (r: ProfileRow): Profile => ({
@@ -81,6 +82,7 @@ const toProfile = (r: ProfileRow): Profile => ({
   hasOnboarded: !!r.has_onboarded,
   reminders: !!r.reminders,
   units: (r.units as Profile['units']) ?? 'metric',
+  expoPushToken: r.expo_push_token,
 });
 
 function safeParseArray(json: string): string[] {
@@ -107,18 +109,17 @@ export interface ProfileInput {
   hasOnboarded?: boolean;
   reminders?: boolean;
   units?: 'metric' | 'imperial';
+  expoPushToken?: string | null;
 }
 
 export const profilesRepo = {
-  get(userId: string): Profile | null {
-    const row = db.prepare(`SELECT * FROM profiles WHERE user_id = ?`).get(userId) as
-      | ProfileRow
-      | undefined;
+  async get(userId: string): Promise<Profile | null> {
+    const row = await db.one<ProfileRow>(`SELECT * FROM profiles WHERE user_id = ?`, [userId]);
     return row ? toProfile(row) : null;
   },
 
   /** Partial update of any profile fields. Returns the updated profile. */
-  update(userId: string, input: ProfileInput): Profile {
+  async update(userId: string, input: ProfileInput): Promise<Profile> {
     const map: Record<string, unknown> = {
       gender: input.gender,
       goal: input.goal,
@@ -135,16 +136,19 @@ export const profilesRepo = {
         input.hasOnboarded === undefined ? undefined : input.hasOnboarded ? 1 : 0,
       reminders: input.reminders === undefined ? undefined : input.reminders ? 1 : 0,
       units: input.units,
+      expo_push_token: input.expoPushToken,
     };
 
     const cols = Object.entries(map).filter(([, v]) => v !== undefined);
     if (cols.length > 0) {
       const setClause = cols.map(([k]) => `${k} = ?`).join(', ');
-      const values = cols.map(([, v]) => v as string | number);
-      db.prepare(
-        `UPDATE profiles SET ${setClause}, updated_at = ? WHERE user_id = ?`
-      ).run(...values, new Date().toISOString(), userId);
+      const values = cols.map(([, v]) => v);
+      await db.run(`UPDATE profiles SET ${setClause}, updated_at = ? WHERE user_id = ?`, [
+        ...values,
+        new Date().toISOString(),
+        userId,
+      ]);
     }
-    return this.get(userId)!;
+    return (await this.get(userId))!;
   },
 };

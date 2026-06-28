@@ -28,7 +28,7 @@ const profileSchema = z.object({
 profileRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    res.json({ profile: profilesRepo.get(req.userId!) });
+    res.json({ profile: await profilesRepo.get(req.userId!) });
   })
 );
 
@@ -37,7 +37,19 @@ profileRouter.put(
   '/',
   validate({ body: profileSchema }),
   asyncHandler(async (req, res) => {
-    const profile = profilesRepo.update(req.userId!, req.body);
+    const profile = await profilesRepo.update(req.userId!, req.body);
+    res.json({ profile });
+  })
+);
+
+// Register / clear the device's Expo push token for server-driven notifications.
+profileRouter.post(
+  '/push-token',
+  validate({ body: z.object({ expoPushToken: z.string().nullable() }) }),
+  asyncHandler(async (req, res) => {
+    const profile = await profilesRepo.update(req.userId!, {
+      expoPushToken: req.body.expoPushToken,
+    });
     res.json({ profile });
   })
 );
@@ -51,7 +63,7 @@ profileRouter.patch(
     }),
   }),
   asyncHandler(async (req, res) => {
-    const profile = profilesRepo.update(req.userId!, req.body);
+    const profile = await profilesRepo.update(req.userId!, req.body);
     res.json({ profile });
   })
 );

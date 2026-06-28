@@ -57,7 +57,7 @@ authRouter.post(
   '/refresh',
   validate({ body: refreshSchema }),
   asyncHandler(async (req, res) => {
-    const tokens = authService.refresh(req.body.refreshToken);
+    const tokens = await authService.refresh(req.body.refreshToken);
     res.json(tokens);
   })
 );
@@ -66,7 +66,7 @@ authRouter.post(
   '/logout',
   validate({ body: refreshSchema.partial() }),
   asyncHandler(async (req, res) => {
-    authService.logout(req.body.refreshToken ?? '');
+    await authService.logout(req.body.refreshToken ?? '');
     res.json({ ok: true });
   })
 );
@@ -75,8 +75,8 @@ authRouter.get(
   '/me',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const user = usersRepo.findById(req.userId!);
+    const user = await usersRepo.findById(req.userId!);
     if (!user) throw ApiError.unauthorized('Account no longer exists');
-    res.json({ user, profile: profilesRepo.get(user.id) });
+    res.json({ user, profile: await profilesRepo.get(user.id) });
   })
 );

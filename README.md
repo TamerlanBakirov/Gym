@@ -24,7 +24,9 @@ This repo has two parts:
   countdown timer, timed-exercise support, haptics, and a celebratory completion screen.
 - **Progress tracking** — workout stats, streaks, a 7-day activity chart, weight logging
   with a trend chart, and a recent-activity feed.
-- **Profile & settings** — goals overview, reminders toggle, units, and onboarding reset.
+- **Profile & settings** — goals overview, units, log-out, and a working **workout
+  reminders** toggle backed by daily local notifications (expo-notifications) plus
+  Expo push-token registration for future server-driven pushes.
 - **Local persistence** — all state is saved on-device with AsyncStorage.
 
 ## Tech stack
@@ -38,7 +40,9 @@ This repo has two parts:
 | Networking | `fetch` API client with token storage + auto-refresh on 401 |
 | UI | Custom design system, expo-linear-gradient, @expo/vector-icons, expo-haptics |
 | Animation | react-native-reanimated |
-| Backend | Node + Express + `node:sqlite` + JWT ([/server](server)) |
+| Notifications | expo-notifications (daily local reminders + push token) |
+| Backend | Node + Express + JWT, SQLite **or** Postgres ([/server](server)) |
+| Deploy | Docker + docker-compose (API + Postgres) |
 
 ## Project structure
 
@@ -101,6 +105,14 @@ npm run typecheck    # TypeScript check (tsc --noEmit)
 A fully functional, end-to-end product: the app authenticates against the backend and
 persists profile, workout logs, weight entries, and settings server-side. The workout
 catalog is seeded into the database and mirrored locally for instant, offline browsing.
+The backend runs on SQLite for local dev or Postgres in production, and ships with a
+Docker Compose stack.
 
-Natural next steps: video demonstrations per exercise, push-notification reminders,
-social/leaderboard features, and a managed Postgres deployment.
+### Run the full stack with Docker
+
+```bash
+docker compose up --build      # API + Postgres
+```
+
+Natural next steps: video demonstrations per exercise, server-driven push campaigns,
+and social/leaderboard features.

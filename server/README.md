@@ -96,8 +96,35 @@ src/
     stats/            # aggregated stats service + route
 ```
 
-## Switching to Postgres
+## Database: SQLite or Postgres
 
-The data access is isolated in `src/modules/**/**.repo.ts`. Swap `node:sqlite`
-for a Postgres client (e.g. `pg`) in `src/db/database.ts` and adjust the repos —
-the routes, services, and validation stay the same.
+The data layer is driver-agnostic ([`src/db/driver.ts`](src/db/driver.ts)). Two
+adapters implement the same async interface:
+
+- **SQLite** (`src/db/sqlite.ts`) — the default, zero-config, great for local dev.
+- **Postgres** (`src/db/postgres.ts`) — used automatically when `DATABASE_URL` is set.
+
+Repositories depend only on the `Db` interface, so the same code runs on either.
+SQL is written with `?` placeholders; the Postgres adapter rewrites them to `$1, $2…`.
+
+```bash
+# SQLite (default)
+npm run dev
+
+# Postgres
+DATABASE_URL=postgres://forge:forge@localhost:5432/forge npm run dev
+```
+
+## Deployment (Docker)
+
+A multi-stage [`Dockerfile`](Dockerfile) builds a lean production image, and the
+root [`docker-compose.yml`](../docker-compose.yml) runs the API together with Postgres:
+
+```bash
+# from the repo root
+docker compose up --build
+# API → http://localhost:4000   Postgres → localhost:5432
+```
+
+Set real secrets in production (env or compose `environment`):
+`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, and `DATABASE_URL`.

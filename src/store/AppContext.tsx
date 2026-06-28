@@ -9,7 +9,28 @@ import React, {
 import { Api, ApiProfile, ApiUser } from '../api';
 import { setSessionExpiredHandler } from '../api/client';
 import { tokenStore } from '../api/tokens';
+import {
+  cancelDailyReminder,
+  getExpoPushToken,
+  scheduleDailyReminder,
+} from '../lib/notifications';
 import { ProgressEntry, UserProfile, WorkoutLog } from '../types';
+
+/** Turn workout reminders on/off: schedule local notification + register push token. */
+async function applyReminderState(enabled: boolean) {
+  try {
+    if (enabled) {
+      await scheduleDailyReminder();
+      const token = await getExpoPushToken();
+      if (token) await Api.setPushToken(token);
+    } else {
+      await cancelDailyReminder();
+      await Api.setPushToken(null);
+    }
+  } catch {
+    // best-effort; never block the UI on notification setup
+  }
+}
 
 /** Fill nullable API profile fields with sensible defaults for the UI. */
 function normalizeProfile(api: ApiProfile | null, name: string): UserProfile {
@@ -142,12 +163,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const completeOnboarding = useCallback(async (patch: ProfilePatch) => {
     const res = await Api.updateProfile({ ...patch, hasOnboarded: true });
     setApiProfile(res.profile);
+    if (res.profile.reminders) applyReminderState(true).catch(() => {});
   }, []);
 
   const updateSettings = useCallback(
     async (patch: { reminders?: boolean; units?: 'metric' | 'imperial' }) => {
       const res = await Api.updateSettings(patch);
       setApiProfile(res.profile);
+      if (patch.reminders !== undefined) await applyReminderState(patch.reminders);
     },
     []
   );
@@ -178,6 +201,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setApiProfile(me.profile);
     await loadUserData();
   }, [loadUserData]);
+
+  // Keep the local daily reminder in sync with the user's preference.
+  const remindersOn = !!apiProfile?.reminders && !!apiProfile?.hasOnboarded;
+  useEffect(() => {
+    if (!user) return;
+    if (remindersOn) scheduleDailyReminder().catch(() => {});
+    else cancelDailyReminder().catch(() => {});
+  }, [user, remindersOn]);
 
   const profile = useMemo(
     () => (user ? normalizeProfile(apiProfile, user.name) : null),

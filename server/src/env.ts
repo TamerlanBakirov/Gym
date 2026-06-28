@@ -5,6 +5,8 @@ const schema = z.object({
   PORT: z.coerce.number().default(4000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_PATH: z.string().default('data/forge.db'),
+  // When set, Postgres is used instead of SQLite (e.g. postgres://user:pass@host:5432/forge).
+  DATABASE_URL: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(8).default('dev-access-secret-change-me'),
   JWT_REFRESH_SECRET: z.string().min(8).default('dev-refresh-secret-change-me'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),

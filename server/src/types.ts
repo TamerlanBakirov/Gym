@@ -22,6 +22,7 @@ export interface Profile {
   hasOnboarded: boolean;
   reminders: boolean;
   units: 'metric' | 'imperial';
+  expoPushToken: string | null;
 }
 
 export interface Exercise {

@@ -20,17 +20,17 @@ function computeStreak(dates: string[]): number {
 }
 
 export const statsService = {
-  forUser(userId: string) {
-    const totals = logsRepo.totals(userId);
-    const dates = logsRepo.loggedDates(userId);
+  async forUser(userId: string) {
+    const [totals, dates, profile, logs] = await Promise.all([
+      logsRepo.totals(userId),
+      logsRepo.loggedDates(userId),
+      profilesRepo.get(userId),
+      logsRepo.list(userId, 500),
+    ]);
     const streak = computeStreak(dates);
-    const profile = profilesRepo.get(userId);
 
     // Last 7 days activity buckets.
     const week: { date: string; count: number }[] = [];
-    const counts: Record<string, number> = {};
-    for (const d of dates) counts[d] = (counts[d] ?? 0) + 1; // distinct dates → 1 each
-    const logs = logsRepo.list(userId, 500);
     const perDay: Record<string, number> = {};
     for (const l of logs) perDay[l.date] = (perDay[l.date] ?? 0) + 1;
 

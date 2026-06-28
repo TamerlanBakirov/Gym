@@ -13,47 +13,47 @@ export interface AuthResult {
   refreshToken: string;
 }
 
-function issueTokens(user: User): { accessToken: string; refreshToken: string } {
+async function issueTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
   const accessToken = signAccessToken({ sub: user.id, email: user.email });
   const refreshToken = randomToken();
   const expires = new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400_000);
-  tokensRepo.store(user.id, refreshToken, expires);
+  await tokensRepo.store(user.id, refreshToken, expires);
   return { accessToken, refreshToken };
 }
 
 export const authService = {
   async register(email: string, password: string, name: string): Promise<AuthResult> {
     const normalized = email.trim().toLowerCase();
-    if (usersRepo.findByEmail(normalized)) {
+    if (await usersRepo.findByEmail(normalized)) {
       throw ApiError.conflict('An account with this email already exists');
     }
     const passwordHash = await hashPassword(password);
-    const user = usersRepo.create(normalized, passwordHash, name.trim());
-    const tokens = issueTokens(user);
-    return { user, profile: profilesRepo.get(user.id), ...tokens };
+    const user = await usersRepo.create(normalized, passwordHash, name.trim());
+    const tokens = await issueTokens(user);
+    return { user, profile: await profilesRepo.get(user.id), ...tokens };
   },
 
   async login(email: string, password: string): Promise<AuthResult> {
     const normalized = email.trim().toLowerCase();
-    const found = usersRepo.findByEmail(normalized);
+    const found = await usersRepo.findByEmail(normalized);
     if (!found) throw ApiError.unauthorized('Invalid email or password');
     const ok = await verifyPassword(password, found.password_hash);
     if (!ok) throw ApiError.unauthorized('Invalid email or password');
-    const tokens = issueTokens(found.user);
-    return { user: found.user, profile: profilesRepo.get(found.user.id), ...tokens };
+    const tokens = await issueTokens(found.user);
+    return { user: found.user, profile: await profilesRepo.get(found.user.id), ...tokens };
   },
 
-  refresh(refreshToken: string): { accessToken: string; refreshToken: string } {
-    const userId = tokensRepo.resolve(refreshToken);
+  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const userId = await tokensRepo.resolve(refreshToken);
     if (!userId) throw ApiError.unauthorized('Invalid or expired refresh token');
-    const user = usersRepo.findById(userId);
+    const user = await usersRepo.findById(userId);
     if (!user) throw ApiError.unauthorized('Account no longer exists');
     // Rotate: revoke the used token, issue a new pair.
-    tokensRepo.revoke(refreshToken);
+    await tokensRepo.revoke(refreshToken);
     return issueTokens(user);
   },
 
-  logout(refreshToken: string): void {
-    if (refreshToken) tokensRepo.revoke(refreshToken);
+  async logout(refreshToken: string): Promise<void> {
+    if (refreshToken) await tokensRepo.revoke(refreshToken);
   },
 };

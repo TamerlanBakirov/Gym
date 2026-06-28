@@ -9,6 +9,6 @@ statsRouter.use(requireAuth);
 statsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    res.json(statsService.forUser(req.userId!));
+    res.json(await statsService.forUser(req.userId!));
   })
 );

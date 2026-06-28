@@ -22,6 +22,7 @@ apiRouter.get('/', (_req, res) => {
       'GET    /api/profile',
       'PUT    /api/profile',
       'PATCH  /api/profile/settings',
+      'POST   /api/profile/push-token',
       'GET    /api/workouts',
       'GET    /api/workouts/exercises',
       'GET    /api/workouts/:slug',

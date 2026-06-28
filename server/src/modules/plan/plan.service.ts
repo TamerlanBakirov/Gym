@@ -14,8 +14,8 @@ export const planService = {
   goalLabel: (goal: string | null) => (goal ? GOAL_LABEL[goal] ?? 'Fitness' : 'Fitness'),
 
   /** Pick a weekly schedule of workouts matching the profile. */
-  recommend(profile: Profile): Workout[] {
-    const all = workoutsRepo.list();
+  async recommend(profile: Profile): Promise<Workout[]> {
+    const all = await workoutsRepo.list();
     if (all.length === 0) return [];
     const targets = new Set(profile.targetAreas);
     const level = profile.level ?? 'beginner';

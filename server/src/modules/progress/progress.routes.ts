@@ -16,7 +16,7 @@ const weightSchema = z.object({
 progressRouter.get(
   '/weight',
   asyncHandler(async (req, res) => {
-    res.json({ entries: weightsRepo.list(req.userId!) });
+    res.json({ entries: await weightsRepo.list(req.userId!) });
   })
 );
 
@@ -24,7 +24,7 @@ progressRouter.post(
   '/weight',
   validate({ body: weightSchema }),
   asyncHandler(async (req, res) => {
-    const entry = weightsRepo.upsert(req.userId!, req.body.weightKg, req.body.date);
+    const entry = await weightsRepo.upsert(req.userId!, req.body.weightKg, req.body.date);
     res.status(201).json({ entry });
   })
 );

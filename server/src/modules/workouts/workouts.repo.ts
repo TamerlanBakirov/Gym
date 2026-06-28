@@ -1,4 +1,4 @@
-import { db } from '../../db/database.js';
+import { db } from '../../db/index.js';
 import type { Exercise, Workout } from '../../types.js';
 
 interface ExerciseRow {
@@ -42,19 +42,18 @@ const toExercise = (r: ExerciseRow): Exercise => ({
   emoji: r.emoji,
 });
 
-function exercisesFor(workoutId: string): Exercise[] {
-  const rows = db
-    .prepare(
-      `SELECT e.* FROM workout_exercises we
-       JOIN exercises e ON e.id = we.exercise_id
-       WHERE we.workout_id = ?
-       ORDER BY we.position ASC`
-    )
-    .all(workoutId) as unknown as ExerciseRow[];
+async function exercisesFor(workoutId: string): Promise<Exercise[]> {
+  const rows = await db.query<ExerciseRow>(
+    `SELECT e.* FROM workout_exercises we
+     JOIN exercises e ON e.id = we.exercise_id
+     WHERE we.workout_id = ?
+     ORDER BY we.position ASC`,
+    [workoutId]
+  );
   return rows.map(toExercise);
 }
 
-const toWorkout = (r: WorkoutRow): Workout => ({
+const toWorkout = async (r: WorkoutRow): Promise<Workout> => ({
   id: r.id,
   slug: r.slug,
   title: r.title,
@@ -65,42 +64,36 @@ const toWorkout = (r: WorkoutRow): Workout => ({
   kcal: r.kcal,
   gradient: r.gradient,
   emoji: r.emoji,
-  exercises: exercisesFor(r.id),
+  exercises: await exercisesFor(r.id),
 });
 
 export const workoutsRepo = {
-  list(muscle?: string): Workout[] {
-    const rows = (
-      muscle
-        ? db.prepare(`SELECT * FROM workouts WHERE muscle = ? ORDER BY title`).all(muscle)
-        : db.prepare(`SELECT * FROM workouts ORDER BY title`).all()
-    ) as unknown as WorkoutRow[];
-    return rows.map(toWorkout);
+  async list(muscle?: string): Promise<Workout[]> {
+    const rows = muscle
+      ? await db.query<WorkoutRow>(`SELECT * FROM workouts WHERE muscle = ? ORDER BY title`, [
+          muscle,
+        ])
+      : await db.query<WorkoutRow>(`SELECT * FROM workouts ORDER BY title`);
+    return Promise.all(rows.map(toWorkout));
   },
 
-  bySlug(slug: string): Workout | null {
-    const row = db.prepare(`SELECT * FROM workouts WHERE slug = ?`).get(slug) as
-      | WorkoutRow
-      | undefined;
+  async bySlug(slug: string): Promise<Workout | null> {
+    const row = await db.one<WorkoutRow>(`SELECT * FROM workouts WHERE slug = ?`, [slug]);
     return row ? toWorkout(row) : null;
   },
 
-  byId(id: string): Workout | null {
-    const row = db.prepare(`SELECT * FROM workouts WHERE id = ?`).get(id) as
-      | WorkoutRow
-      | undefined;
+  async byId(id: string): Promise<Workout | null> {
+    const row = await db.one<WorkoutRow>(`SELECT * FROM workouts WHERE id = ?`, [id]);
     return row ? toWorkout(row) : null;
   },
 
-  listExercises(): Exercise[] {
-    const rows = db
-      .prepare(`SELECT * FROM exercises ORDER BY name`)
-      .all() as unknown as ExerciseRow[];
+  async listExercises(): Promise<Exercise[]> {
+    const rows = await db.query<ExerciseRow>(`SELECT * FROM exercises ORDER BY name`);
     return rows.map(toExercise);
   },
 
-  count(): number {
-    const r = db.prepare(`SELECT COUNT(*) AS c FROM workouts`).get() as { c: number };
-    return r.c;
+  async count(): Promise<number> {
+    const r = await db.one<{ c: number }>(`SELECT COUNT(*) AS c FROM workouts`);
+    return r?.c ?? 0;
   },
 };

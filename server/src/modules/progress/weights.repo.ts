@@ -1,4 +1,4 @@
-import { db } from '../../db/database.js';
+import { db } from '../../db/index.js';
 import { uid } from '../../lib/crypto.js';
 import type { WeightEntry } from '../../types.js';
 
@@ -15,31 +15,33 @@ const toEntry = (r: WeightRow): WeightEntry => ({
 });
 
 export const weightsRepo = {
-  list(userId: string): WeightEntry[] {
-    const rows = db
-      .prepare(`SELECT id, date, weight_kg FROM weight_entries WHERE user_id = ? ORDER BY date ASC`)
-      .all(userId) as unknown as WeightRow[];
+  async list(userId: string): Promise<WeightEntry[]> {
+    const rows = await db.query<WeightRow>(
+      `SELECT id, date, weight_kg FROM weight_entries WHERE user_id = ? ORDER BY date ASC`,
+      [userId]
+    );
     return rows.map(toEntry);
   },
 
   /** Upsert today's (or a given date's) weight entry. */
-  upsert(userId: string, weightKg: number, date?: string): WeightEntry {
+  async upsert(userId: string, weightKg: number, date?: string): Promise<WeightEntry> {
     const day = date ?? new Date().toISOString().slice(0, 10);
-    const existing = db
-      .prepare(`SELECT id FROM weight_entries WHERE user_id = ? AND date = ?`)
-      .get(userId, day) as { id: string } | undefined;
+    const existing = await db.one<{ id: string }>(
+      `SELECT id FROM weight_entries WHERE user_id = ? AND date = ?`,
+      [userId, day]
+    );
 
     if (existing) {
-      db.prepare(`UPDATE weight_entries SET weight_kg = ? WHERE id = ?`).run(
-        weightKg,
-        existing.id
-      );
+      await db.run(`UPDATE weight_entries SET weight_kg = ? WHERE id = ?`, [weightKg, existing.id]);
       return { id: existing.id, date: day, weightKg };
     }
     const id = uid();
-    db.prepare(
-      `INSERT INTO weight_entries (id, user_id, date, weight_kg) VALUES (?, ?, ?, ?)`
-    ).run(id, userId, day, weightKg);
+    await db.run(`INSERT INTO weight_entries (id, user_id, date, weight_kg) VALUES (?, ?, ?, ?)`, [
+      id,
+      userId,
+      day,
+      weightKg,
+    ]);
     return { id, date: day, weightKg };
   },
 };

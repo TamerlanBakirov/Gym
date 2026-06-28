@@ -1,4 +1,4 @@
-import { db, migrate } from './database.js';
+import { db, migrate } from './index.js';
 import { uid } from '../lib/crypto.js';
 
 interface SeedExercise {
@@ -57,57 +57,55 @@ const WORKOUTS: SeedWorkout[] = [
 ];
 
 /** Seed catalog data. Idempotent: clears and repopulates exercises/workouts. */
-export function seed(): void {
+export async function seed(): Promise<void> {
   const exIds = new Map<string, string>();
 
-  const insertExercise = db.prepare(
-    `INSERT INTO exercises (id, slug, name, muscle, duration_sec, reps, sets, rest_sec, equipment, cue, emoji)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-  const insertWorkout = db.prepare(
-    `INSERT INTO workouts (id, slug, title, subtitle, muscle, level, duration_min, kcal, gradient, emoji)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-  const insertLink = db.prepare(
-    `INSERT INTO workout_exercises (workout_id, exercise_id, position) VALUES (?, ?, ?)`
-  );
-
-  db.exec('DELETE FROM workout_exercises; DELETE FROM workouts; DELETE FROM exercises;');
+  // Clear in FK-safe order.
+  await db.run('DELETE FROM workout_exercises');
+  await db.run('DELETE FROM workouts');
+  await db.run('DELETE FROM exercises');
 
   for (const e of EXERCISES) {
     const id = uid();
     exIds.set(e.slug, id);
-    insertExercise.run(
-      id, e.slug, e.name, e.muscle,
-      e.durationSec ?? null, e.reps ?? null, e.sets, e.restSec,
-      e.equipment, e.cue, e.emoji
+    await db.run(
+      `INSERT INTO exercises (id, slug, name, muscle, duration_sec, reps, sets, rest_sec, equipment, cue, emoji)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, e.slug, e.name, e.muscle, e.durationSec ?? null, e.reps ?? null, e.sets, e.restSec, e.equipment, e.cue, e.emoji]
     );
   }
 
   for (const w of WORKOUTS) {
     const id = uid();
-    insertWorkout.run(
-      id, w.slug, w.title, w.subtitle, w.muscle, w.level,
-      w.durationMin, w.kcal, w.gradient, w.emoji
+    await db.run(
+      `INSERT INTO workouts (id, slug, title, subtitle, muscle, level, duration_min, kcal, gradient, emoji)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, w.slug, w.title, w.subtitle, w.muscle, w.level, w.durationMin, w.kcal, w.gradient, w.emoji]
     );
-    w.exercises.forEach((slug, position) => {
-      const exId = exIds.get(slug);
-      if (exId) insertLink.run(id, exId, position);
-    });
+    for (let position = 0; position < w.exercises.length; position++) {
+      const exId = exIds.get(w.exercises[position]);
+      if (exId) {
+        await db.run(
+          `INSERT INTO workout_exercises (workout_id, exercise_id, position) VALUES (?, ?, ?)`,
+          [id, exId, position]
+        );
+      }
+    }
   }
 
   console.log(`✅ Seeded ${EXERCISES.length} exercises and ${WORKOUTS.length} workouts.`);
 }
 
 /** Seed only if the catalog is empty (called on server boot). */
-export function ensureSeeded(): void {
-  const row = db.prepare('SELECT COUNT(*) AS c FROM workouts').get() as { c: number };
-  if (row.c === 0) seed();
+export async function ensureSeeded(): Promise<void> {
+  const row = await db.one<{ c: number }>('SELECT COUNT(*) AS c FROM workouts');
+  if (!row || row.c === 0) await seed();
 }
 
 // Allow running directly: `npm run seed`
 if (import.meta.url === `file://${process.argv[1]}`) {
-  migrate();
-  seed();
+  await migrate();
+  await seed();
+  await db.close();
   process.exit(0);
 }

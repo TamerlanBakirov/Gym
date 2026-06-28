@@ -1,4 +1,4 @@
-import { db } from '../../db/database.js';
+import { db } from '../../db/index.js';
 import { uid } from '../../lib/crypto.js';
 import type { WorkoutLog } from '../../types.js';
 
@@ -31,33 +31,24 @@ export interface CreateLogInput {
 }
 
 export const logsRepo = {
-  list(userId: string, limit = 100): WorkoutLog[] {
-    const rows = db
-      .prepare(
-        `SELECT * FROM workout_logs WHERE user_id = ?
-         ORDER BY date DESC, created_at DESC LIMIT ?`
-      )
-      .all(userId, limit) as unknown as LogRow[];
+  async list(userId: string, limit = 100): Promise<WorkoutLog[]> {
+    const rows = await db.query<LogRow>(
+      `SELECT * FROM workout_logs WHERE user_id = ?
+       ORDER BY date DESC, created_at DESC LIMIT ?`,
+      [userId, limit]
+    );
     return rows.map(toLog);
   },
 
-  create(userId: string, input: CreateLogInput): WorkoutLog {
+  async create(userId: string, input: CreateLogInput): Promise<WorkoutLog> {
     const id = uid();
     const createdAt = new Date().toISOString();
     const date = input.date ?? createdAt.slice(0, 10);
-    db.prepare(
+    await db.run(
       `INSERT INTO workout_logs
         (id, user_id, workout_id, workout_title, date, duration_min, kcal, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      userId,
-      input.workoutId ?? null,
-      input.workoutTitle,
-      date,
-      input.durationMin,
-      input.kcal,
-      createdAt
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, userId, input.workoutId ?? null, input.workoutTitle, date, input.durationMin, input.kcal, createdAt]
     );
     return {
       id,
@@ -70,30 +61,28 @@ export const logsRepo = {
     };
   },
 
-  remove(userId: string, id: string): boolean {
-    const res = db
-      .prepare(`DELETE FROM workout_logs WHERE id = ? AND user_id = ?`)
-      .run(id, userId);
+  async remove(userId: string, id: string): Promise<boolean> {
+    const res = await db.run(`DELETE FROM workout_logs WHERE id = ? AND user_id = ?`, [id, userId]);
     return res.changes > 0;
   },
 
   /** All distinct logged dates for streak/aggregate computation. */
-  loggedDates(userId: string): string[] {
-    const rows = db
-      .prepare(`SELECT DISTINCT date FROM workout_logs WHERE user_id = ? ORDER BY date DESC`)
-      .all(userId) as { date: string }[];
+  async loggedDates(userId: string): Promise<string[]> {
+    const rows = await db.query<{ date: string }>(
+      `SELECT DISTINCT date FROM workout_logs WHERE user_id = ? ORDER BY date DESC`,
+      [userId]
+    );
     return rows.map((r) => r.date);
   },
 
-  totals(userId: string): { count: number; kcal: number; minutes: number } {
-    const r = db
-      .prepare(
-        `SELECT COUNT(*) AS count,
-                COALESCE(SUM(kcal),0) AS kcal,
-                COALESCE(SUM(duration_min),0) AS minutes
-         FROM workout_logs WHERE user_id = ?`
-      )
-      .get(userId) as { count: number; kcal: number; minutes: number };
-    return r;
+  async totals(userId: string): Promise<{ count: number; kcal: number; minutes: number }> {
+    const r = await db.one<{ count: number; kcal: number; minutes: number }>(
+      `SELECT COUNT(*) AS count,
+              COALESCE(SUM(kcal),0) AS kcal,
+              COALESCE(SUM(duration_min),0) AS minutes
+       FROM workout_logs WHERE user_id = ?`,
+      [userId]
+    );
+    return { count: r?.count ?? 0, kcal: r?.kcal ?? 0, minutes: r?.minutes ?? 0 };
   },
 };
