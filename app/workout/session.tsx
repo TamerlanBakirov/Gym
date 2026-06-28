@@ -80,7 +80,7 @@ export default function Session() {
       workoutTitle: workout.title,
       durationMin: workout.durationMin,
       kcal: workout.kcal,
-    });
+    }).catch(() => {});
     setPhase('done');
   };
 

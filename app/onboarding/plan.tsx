@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
@@ -35,9 +35,31 @@ export default function PlanReveal() {
   const weeks = projectedWeeks(profile);
   const kcal = estimatedDailyKcal(profile);
 
-  const start = () => {
-    completeOnboarding(profile);
-    router.replace('/(tabs)');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const start = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await completeOnboarding({
+        gender: profile.gender,
+        goal: profile.goal,
+        level: profile.level,
+        bodyType: profile.bodyType,
+        targetAreas: profile.targetAreas,
+        equipment: profile.equipment,
+        daysPerWeek: profile.daysPerWeek,
+        ageRange: profile.ageRange,
+        heightCm: profile.heightCm,
+        weightKg: profile.weightKg,
+        targetWeightKg: profile.targetWeightKg,
+      });
+      router.replace('/(tabs)');
+    } catch {
+      setError('Could not save your plan. Please check your connection and try again.');
+      setSaving(false);
+    }
   };
 
   return (
@@ -86,7 +108,8 @@ export default function PlanReveal() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button label="Start my journey" onPress={start} />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button label="Start my journey" onPress={start} loading={saving} />
       </View>
     </SafeAreaView>
   );
@@ -149,4 +172,5 @@ const styles = StyleSheet.create({
   dayTitle: { ...typography.h3, color: colors.text },
   dayMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   footer: { paddingBottom: spacing.md, paddingTop: spacing.sm },
+  error: { ...typography.caption, color: colors.danger, textAlign: 'center', marginBottom: spacing.sm },
 });

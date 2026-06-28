@@ -12,26 +12,26 @@ import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Today() {
   const router = useRouter();
-  const { state } = useApp();
-  const profile = state.profile!;
+  const { profile, logs } = useApp();
+  const safeProfile = profile!;
 
-  const schedule = useMemo(() => recommendSchedule(profile), [profile]);
+  const schedule = useMemo(() => recommendSchedule(safeProfile), [safeProfile]);
   const todaysWorkout = useMemo(() => {
     const dow = new Date().getDay();
     return schedule[dow % schedule.length];
   }, [schedule]);
 
-  const loggedDates = state.logs.map((l) => l.date);
+  const loggedDates = logs.map((l) => l.date);
   const streak = computeStreak(loggedDates);
   const doneToday = loggedDates.includes(todayISO());
 
   const weekLogs = useMemo(() => {
     const start = new Date();
     start.setDate(start.getDate() - 6);
-    return state.logs.filter((l) => new Date(l.date) >= start);
-  }, [state.logs]);
+    return logs.filter((l) => new Date(l.date) >= start);
+  }, [logs]);
 
-  const weeklyTarget = profile.daysPerWeek;
+  const weeklyTarget = safeProfile.daysPerWeek;
   const weeklyDone = new Set(weekLogs.map((l) => l.date)).size;
   const kcalWeek = weekLogs.reduce((sum, l) => sum + l.kcal, 0);
 
@@ -42,7 +42,7 @@ export default function Today() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>{greeting()},</Text>
-            <Text style={styles.name}>{profile.name} 👋</Text>
+            <Text style={styles.name}>{safeProfile.name} 👋</Text>
           </View>
           <View style={styles.streakChip}>
             <Ionicons name="flame" size={16} color={colors.primary} />

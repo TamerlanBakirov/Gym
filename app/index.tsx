@@ -4,9 +4,9 @@ import { ActivityIndicator, View } from 'react-native';
 import { useApp } from '../src/store/AppContext';
 import { colors } from '../src/theme';
 
-/** Entry gate: route to onboarding or the main app based on stored state. */
+/** Entry gate: route to auth, onboarding, or the main app based on session state. */
 export default function Index() {
-  const { state, ready } = useApp();
+  const { ready, authenticated, hasOnboarded } = useApp();
 
   if (!ready) {
     return (
@@ -16,5 +16,7 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={state.hasOnboarded ? '/(tabs)' : '/onboarding'} />;
+  if (!authenticated) return <Redirect href="/auth" />;
+  if (!hasOnboarded) return <Redirect href="/onboarding" />;
+  return <Redirect href="/(tabs)" />;
 }

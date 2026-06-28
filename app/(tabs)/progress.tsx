@@ -16,28 +16,28 @@ import { computeStreak, lastNDays, prettyDate } from '../../src/lib/format';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Progress() {
-  const { state, addWeight } = useApp();
+  const { profile, logs, weightEntries, addWeight } = useApp();
   const [input, setInput] = useState('');
 
-  const totalWorkouts = state.logs.length;
-  const totalKcal = state.logs.reduce((s, l) => s + l.kcal, 0);
-  const totalMin = state.logs.reduce((s, l) => s + l.durationMin, 0);
-  const streak = computeStreak(state.logs.map((l) => l.date));
+  const totalWorkouts = logs.length;
+  const totalKcal = logs.reduce((s, l) => s + l.kcal, 0);
+  const totalMin = logs.reduce((s, l) => s + l.durationMin, 0);
+  const streak = computeStreak(logs.map((l) => l.date));
 
   // Last 7 days workout counts for the bar chart.
   const days = lastNDays(7);
   const countByDay = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const l of state.logs) map[l.date] = (map[l.date] ?? 0) + 1;
+    for (const l of logs) map[l.date] = (map[l.date] ?? 0) + 1;
     return days.map((d) => ({ date: d, count: map[d] ?? 0 }));
-  }, [state.logs]);
+  }, [logs]);
   const maxCount = Math.max(1, ...countByDay.map((d) => d.count));
 
   // Weight trend.
-  const weights = state.weightEntries;
+  const weights = weightEntries;
   const startW = weights[0]?.weightKg;
   const currentW = weights[weights.length - 1]?.weightKg;
-  const target = state.profile?.targetWeightKg;
+  const target = profile?.targetWeightKg;
   const delta = startW != null && currentW != null ? currentW - startW : 0;
 
   const minW = weights.length ? Math.min(...weights.map((w) => w.weightKg)) : 0;
@@ -48,7 +48,7 @@ export default function Progress() {
     const val = parseFloat(input.replace(',', '.'));
     if (!isNaN(val) && val > 20 && val < 400) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      addWeight(Math.round(val * 10) / 10);
+      addWeight(Math.round(val * 10) / 10).catch(() => {});
       setInput('');
     }
   };
@@ -163,13 +163,13 @@ export default function Progress() {
 
         {/* Recent activity */}
         <Text style={[styles.title, styles.recentTitle]}>Recent activity</Text>
-        {state.logs.length === 0 ? (
+        {logs.length === 0 ? (
           <Card>
             <Text style={styles.hint}>No workouts logged yet. Time to start! 💪</Text>
           </Card>
         ) : (
           <View style={styles.activityList}>
-            {state.logs.slice(0, 10).map((l) => (
+            {logs.slice(0, 10).map((l) => (
               <View key={l.id} style={styles.activityRow}>
                 <View style={styles.activityIcon}>
                   <Ionicons name="checkmark-done" size={18} color={colors.primary} />

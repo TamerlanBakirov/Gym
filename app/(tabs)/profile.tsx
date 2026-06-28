@@ -10,25 +10,21 @@ import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Profile() {
   const router = useRouter();
-  const { state, updateSettings, resetAll } = useApp();
-  const profile = state.profile!;
+  const { profile: p, settings, updateSettings, logout } = useApp();
+  const profile = p!;
 
-  const confirmReset = () => {
-    Alert.alert(
-      'Restart onboarding?',
-      'This clears your profile, plan and all logged progress. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            resetAll();
-            router.replace('/onboarding');
-          },
+  const confirmLogout = () => {
+    Alert.alert('Log out?', 'You can log back in any time.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/auth');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const initials = profile.name.slice(0, 2).toUpperCase();
@@ -83,17 +79,19 @@ export default function Profile() {
               <Text style={styles.rowLabel}>Workout reminders</Text>
             </View>
             <Switch
-              value={state.settings.reminders}
-              onValueChange={(v) => updateSettings({ reminders: v })}
+              value={settings.reminders}
+              onValueChange={(v) => updateSettings({ reminders: v }).catch(() => {})}
               trackColor={{ false: colors.surfaceAlt, true: colors.primaryDim }}
-              thumbColor={state.settings.reminders ? colors.primary : '#f4f3f4'}
+              thumbColor={settings.reminders ? colors.primary : '#f4f3f4'}
             />
           </View>
           <Sep />
           <TouchableOpacity
             style={styles.toggleRow}
             onPress={() =>
-              updateSettings({ units: state.settings.units === 'metric' ? 'imperial' : 'metric' })
+              updateSettings({
+                units: settings.units === 'metric' ? 'imperial' : 'metric',
+              }).catch(() => {})
             }
           >
             <View style={styles.rowLeft}>
@@ -104,17 +102,17 @@ export default function Profile() {
             </View>
             <View style={styles.rowRight}>
               <Text style={styles.rowValue}>
-                {state.settings.units === 'metric' ? 'Metric (kg)' : 'Imperial (lb)'}
+                {settings.units === 'metric' ? 'Metric (kg)' : 'Imperial (lb)'}
               </Text>
               <Ionicons name="swap-horizontal" size={18} color={colors.textFaint} />
             </View>
           </TouchableOpacity>
         </Card>
 
-        {/* Danger zone */}
-        <TouchableOpacity style={styles.resetBtn} onPress={confirmReset}>
-          <Ionicons name="refresh" size={18} color={colors.danger} />
-          <Text style={styles.resetText}>Restart onboarding</Text>
+        {/* Account */}
+        <TouchableOpacity style={styles.resetBtn} onPress={confirmLogout}>
+          <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+          <Text style={styles.resetText}>Log out</Text>
         </TouchableOpacity>
 
         <Text style={styles.version}>Forge · v1.0.0</Text>
