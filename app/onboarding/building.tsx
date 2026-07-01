@@ -4,18 +4,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressBar } from '../../src/components/ui';
+import { useI18n } from '../../src/i18n';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
-const STEPS = [
-  'Analyzing your goals',
-  'Matching your fitness level',
-  'Selecting your exercises',
-  'Calibrating your schedule',
-  'Finalizing your plan',
+const STEP_KEYS = [
+  'building.step1',
+  'building.step2',
+  'building.step3',
+  'building.step4',
+  'building.step5',
 ];
 
 export default function Building() {
   const router = useRouter();
+  const { t } = useI18n();
+  const STEPS = STEP_KEYS.map((k) => t(k));
   const { answers } = useLocalSearchParams<{ answers: string }>();
   const [pct, setPct] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
@@ -64,8 +67,8 @@ export default function Building() {
           </View>
         </Animated.View>
 
-        <Text style={styles.title}>Building your plan</Text>
-        <Text style={styles.subtitle}>Crafting a program made just for you…</Text>
+        <Text style={styles.title}>{t('building.title')}</Text>
+        <Text style={styles.subtitle}>{t('building.subtitle')}</Text>
 
         <View style={styles.bar}>
           <ProgressBar progress={pct} />

@@ -4,23 +4,25 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WorkoutCard } from '../../src/components/WorkoutCard';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { MuscleGroup } from '../../src/types';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 type Filter = 'all' | MuscleGroup;
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'fullbody', label: 'Full body' },
-  { key: 'chest', label: 'Upper' },
-  { key: 'legs', label: 'Legs' },
-  { key: 'core', label: 'Core' },
-  { key: 'cardio', label: 'Cardio' },
+  { key: 'all', label: 'workouts.all' },
+  { key: 'fullbody', label: 'workouts.fullbody' },
+  { key: 'chest', label: 'workouts.upper' },
+  { key: 'legs', label: 'workouts.legs' },
+  { key: 'core', label: 'workouts.core' },
+  { key: 'cardio', label: 'workouts.cardio' },
 ];
 
 export default function Workouts() {
   const router = useRouter();
   const { workouts } = useApp();
+  const { t } = useI18n();
   const [filter, setFilter] = useState<Filter>('all');
 
   const filtered = useMemo(() => {
@@ -31,8 +33,8 @@ export default function Workouts() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Workouts</Text>
-        <Text style={styles.subtitle}>{workouts.length} programs ready for you</Text>
+        <Text style={styles.title}>{t('workouts.title')}</Text>
+        <Text style={styles.subtitle}>{t('workouts.subtitle', { n: workouts.length })}</Text>
       </View>
 
       <ScrollView
@@ -49,7 +51,7 @@ export default function Workouts() {
               onPress={() => setFilter(f.key)}
               style={[styles.chip, active && styles.chipActive]}
             >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{t(f.label)}</Text>
             </Pressable>
           );
         })}
@@ -68,7 +70,7 @@ export default function Workouts() {
           />
         ))}
         {filtered.length === 0 ? (
-          <Text style={styles.empty}>No workouts in this category yet.</Text>
+          <Text style={styles.empty}>{t('workouts.empty')}</Text>
         ) : null}
       </ScrollView>
     </SafeAreaView>

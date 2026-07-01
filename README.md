@@ -27,6 +27,8 @@ This repo has two parts:
 - **Profile & settings** — goals overview, units, log-out, and a working **workout
   reminders** toggle backed by daily local notifications (expo-notifications) plus
   Expo push-token registration for future server-driven pushes.
+- **Localization (TR/EN)** — full Turkish + English UI with an in-app language
+  switcher; defaults to Turkish and persists the choice.
 - **Local persistence** — all state is saved on-device with AsyncStorage.
 
 ## Tech stack

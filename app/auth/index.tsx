@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { ApiError } from '../../src/api/client';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 type Mode = 'login' | 'register';
@@ -23,6 +24,7 @@ type Mode = 'login' | 'register';
 export default function Auth() {
   const router = useRouter();
   const { login, register } = useApp();
+  const { t } = useI18n();
   const [mode, setMode] = useState<Mode>('register');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,11 +37,11 @@ export default function Auth() {
   const submit = async () => {
     setError(null);
     if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+      setError(t('auth.fillEmailPass'));
       return;
     }
     if (isRegister && !name.trim()) {
-      setError('Please enter your name.');
+      setError(t('auth.fillName'));
       return;
     }
     setLoading(true);
@@ -49,7 +51,7 @@ export default function Auth() {
       router.replace('/');
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
-      else setError('Could not connect to the server. Check your connection.');
+      else setError(t('auth.connError'));
     } finally {
       setLoading(false);
     }
@@ -76,19 +78,17 @@ export default function Auth() {
             </View>
 
             <Text style={styles.title}>
-              {isRegister ? 'Create your account' : 'Welcome back'}
+              {isRegister ? t('auth.createTitle') : t('auth.welcomeTitle')}
             </Text>
             <Text style={styles.subtitle}>
-              {isRegister
-                ? 'Start your transformation today.'
-                : 'Log in to continue your journey.'}
+              {isRegister ? t('auth.createSub') : t('auth.welcomeSub')}
             </Text>
 
             <View style={styles.form}>
               {isRegister ? (
                 <Field
                   icon="person-outline"
-                  placeholder="Your name"
+                  placeholder={t('auth.name')}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -96,7 +96,7 @@ export default function Auth() {
               ) : null}
               <Field
                 icon="mail-outline"
-                placeholder="Email"
+                placeholder={t('auth.email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -104,7 +104,7 @@ export default function Auth() {
               />
               <Field
                 icon="lock-closed-outline"
-                placeholder="Password"
+                placeholder={t('auth.password')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -119,7 +119,7 @@ export default function Auth() {
               ) : null}
 
               <Button
-                label={isRegister ? 'Create account' : 'Log in'}
+                label={isRegister ? t('auth.createBtn') : t('auth.loginBtn')}
                 onPress={submit}
                 loading={loading}
                 style={{ marginTop: spacing.md }}
@@ -127,7 +127,7 @@ export default function Auth() {
 
               {!isRegister ? (
                 <Pressable onPress={() => router.push('/auth/reset')} style={styles.forgot}>
-                  <Text style={styles.forgotText}>Forgot password?</Text>
+                  <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -140,8 +140,10 @@ export default function Auth() {
               style={styles.switchRow}
             >
               <Text style={styles.switchText}>
-                {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-                <Text style={styles.switchLink}>{isRegister ? 'Log in' : 'Sign up'}</Text>
+                {isRegister ? t('auth.haveAccount') : t('auth.noAccount')}
+                <Text style={styles.switchLink}>
+                  {isRegister ? t('auth.login') : t('auth.signup')}
+                </Text>
               </Text>
             </Pressable>
           </ScrollView>

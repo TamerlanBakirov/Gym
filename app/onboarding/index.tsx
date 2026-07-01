@@ -5,16 +5,18 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
+import { useI18n } from '../../src/i18n';
 import { colors, gradients, radius, spacing, typography } from '../../src/theme';
 
 const PERKS = [
-  { icon: 'sparkles', text: 'Personalized plan in 60 seconds' },
-  { icon: 'home', text: 'Train at home or the gym' },
-  { icon: 'trending-up', text: 'Track every rep and result' },
+  { icon: 'sparkles', key: 'welcome.perk1' },
+  { icon: 'home', key: 'welcome.perk2' },
+  { icon: 'trending-up', key: 'welcome.perk3' },
 ] as const;
 
 export default function Welcome() {
   const router = useRouter();
+  const { t } = useI18n();
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -31,28 +33,24 @@ export default function Welcome() {
 
         <View style={styles.hero}>
           <Text style={styles.heroEmoji}>🏋️‍♂️</Text>
-          <Text style={styles.title}>Build the body{'\n'}you actually want.</Text>
-          <Text style={styles.subtitle}>
-            Smart workouts, real progress. Your personal coach in your pocket.
-          </Text>
+          <Text style={styles.title}>{t('welcome.title')}</Text>
+          <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
 
           <View style={styles.perks}>
             {PERKS.map((p) => (
-              <View key={p.text} style={styles.perk}>
+              <View key={p.key} style={styles.perk}>
                 <View style={styles.perkIcon}>
                   <Ionicons name={p.icon as any} size={16} color={colors.primary} />
                 </View>
-                <Text style={styles.perkText}>{p.text}</Text>
+                <Text style={styles.perkText}>{t(p.key)}</Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.footer}>
-          <Button label="Get started" onPress={() => router.push('/onboarding/quiz')} />
-          <Text style={styles.terms}>
-            By continuing you agree to our Terms & Privacy Policy.
-          </Text>
+          <Button label={t('welcome.getStarted')} onPress={() => router.push('/onboarding/quiz')} />
+          <Text style={styles.terms}>{t('welcome.terms')}</Text>
         </View>
       </SafeAreaView>
     </View>

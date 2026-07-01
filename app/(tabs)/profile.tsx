@@ -14,13 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/ui';
 import { useApp } from '../../src/store/AppContext';
-import { goalLabel } from '../../src/lib/plan';
+import { useI18n } from '../../src/i18n';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Profile() {
   const router = useRouter();
   const { user, profile: p, settings, updateSettings, logout, requestEmailVerification, confirmEmailVerification } =
     useApp();
+  const { t, locale, setLocale } = useI18n();
   const profile = p!;
 
   // Email verification flow state.
@@ -39,10 +40,10 @@ export default function Profile() {
       setVerifyOpen(true);
       if (res.devCode) {
         setVerifyCode(res.devCode);
-        setVerifyHint(`Dev mode: your code is ${res.devCode}`);
+        setVerifyHint(t('profile.verifyDevHint', { code: res.devCode }));
       }
     } catch {
-      setVerifyError('Could not send a code. Try again.');
+      setVerifyError(t('profile.sendError'));
     } finally {
       setVerifyBusy(false);
     }
@@ -50,24 +51,24 @@ export default function Profile() {
 
   const submitVerify = async () => {
     setVerifyError(null);
-    if (verifyCode.length !== 6) return setVerifyError('Enter the 6-digit code.');
+    if (verifyCode.length !== 6) return setVerifyError(t('profile.enterCode'));
     setVerifyBusy(true);
     try {
       await confirmEmailVerification(verifyCode);
       setVerifyOpen(false);
       setVerifyCode('');
     } catch {
-      setVerifyError('Invalid or expired code.');
+      setVerifyError(t('profile.codeError'));
     } finally {
       setVerifyBusy(false);
     }
   };
 
   const confirmLogout = () => {
-    Alert.alert('Log out?', 'You can log back in any time.', [
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutMsg'), [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Log out',
+        text: t('profile.logout'),
         style: 'destructive',
         onPress: async () => {
           await logout();
@@ -82,7 +83,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
 
         {/* Identity card */}
         <Card style={styles.identity}>
@@ -91,7 +92,7 @@ export default function Profile() {
           </View>
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.sub}>
-            {goalLabel(profile.goal)} · {profile.level}
+            {t(`goals.${profile.goal}`)} · {t(`levels.${profile.level}`)}
           </Text>
           <View style={styles.identityStats}>
             <IdStat value={`${profile.weightKg}`} label="kg" />
@@ -110,12 +111,12 @@ export default function Profile() {
                 <Ionicons name="mail-unread" size={18} color={colors.accent4} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.verifyTitle}>Verify your email</Text>
+                <Text style={styles.verifyTitle}>{t('profile.verifyTitle')}</Text>
                 <Text style={styles.verifySub}>{user.email}</Text>
               </View>
               {!verifyOpen ? (
                 <TouchableOpacity style={styles.verifyBtn} onPress={startVerify} disabled={verifyBusy}>
-                  <Text style={styles.verifyBtnText}>{verifyBusy ? '…' : 'Send code'}</Text>
+                  <Text style={styles.verifyBtnText}>{verifyBusy ? '…' : t('profile.sendCode')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -127,14 +128,14 @@ export default function Profile() {
                   <TextInput
                     value={verifyCode}
                     onChangeText={setVerifyCode}
-                    placeholder="6-digit code"
+                    placeholder={t('profile.codePlaceholder')}
                     placeholderTextColor={colors.textFaint}
                     keyboardType="number-pad"
                     maxLength={6}
                     style={styles.verifyInput}
                   />
                   <TouchableOpacity style={styles.verifyConfirm} onPress={submitVerify} disabled={verifyBusy}>
-                    <Text style={styles.verifyConfirmText}>Confirm</Text>
+                    <Text style={styles.verifyConfirmText}>{t('profile.confirm')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -145,30 +146,30 @@ export default function Profile() {
         ) : null}
 
         {/* Goals */}
-        <Text style={styles.sectionTitle}>Your goals</Text>
+        <Text style={styles.sectionTitle}>{t('profile.yourGoals')}</Text>
         <Card>
-          <InfoRow icon="flag" label="Main goal" value={goalLabel(profile.goal)} />
+          <InfoRow icon="flag" label={t('profile.mainGoal')} value={t(`goals.${profile.goal}`)} />
           <Sep />
-          <InfoRow icon="speedometer" label="Fitness level" value={cap(profile.level)} />
+          <InfoRow icon="speedometer" label={t('profile.fitnessLevel')} value={t(`levels.${profile.level}`)} />
           <Sep />
-          <InfoRow icon="fitness" label="Equipment" value={equipLabel(profile.equipment)} />
+          <InfoRow icon="fitness" label={t('profile.equipment')} value={t(`equipment.${profile.equipment}`)} />
           <Sep />
           <InfoRow
             icon="locate"
-            label="Target weight"
+            label={t('profile.targetWeight')}
             value={`${profile.targetWeightKg} kg`}
           />
         </Card>
 
         {/* Settings */}
-        <Text style={styles.sectionTitle}>Settings</Text>
+        <Text style={styles.sectionTitle}>{t('profile.settings')}</Text>
         <Card>
           <View style={styles.toggleRow}>
             <View style={styles.rowLeft}>
               <View style={styles.rowIcon}>
                 <Ionicons name="notifications" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.rowLabel}>Workout reminders</Text>
+              <Text style={styles.rowLabel}>{t('profile.reminders')}</Text>
             </View>
             <Switch
               value={settings.reminders}
@@ -190,12 +191,28 @@ export default function Profile() {
               <View style={styles.rowIcon}>
                 <Ionicons name="options" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.rowLabel}>Units</Text>
+              <Text style={styles.rowLabel}>{t('profile.units')}</Text>
             </View>
             <View style={styles.rowRight}>
               <Text style={styles.rowValue}>
-                {settings.units === 'metric' ? 'Metric (kg)' : 'Imperial (lb)'}
+                {settings.units === 'metric' ? t('profile.metric') : t('profile.imperial')}
               </Text>
+              <Ionicons name="swap-horizontal" size={18} color={colors.textFaint} />
+            </View>
+          </TouchableOpacity>
+          <Sep />
+          <TouchableOpacity
+            style={styles.toggleRow}
+            onPress={() => setLocale(locale === 'tr' ? 'en' : 'tr')}
+          >
+            <View style={styles.rowLeft}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="language" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.rowLabel}>{t('profile.language')}</Text>
+            </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>{locale === 'tr' ? 'Türkçe' : 'English'}</Text>
               <Ionicons name="swap-horizontal" size={18} color={colors.textFaint} />
             </View>
           </TouchableOpacity>
@@ -204,7 +221,7 @@ export default function Profile() {
         {/* Account */}
         <TouchableOpacity style={styles.resetBtn} onPress={confirmLogout}>
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-          <Text style={styles.resetText}>Log out</Text>
+          <Text style={styles.resetText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.version}>Forge · v1.0.0</Text>

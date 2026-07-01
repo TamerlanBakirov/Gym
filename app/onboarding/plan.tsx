@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { Card, GradientCard } from '../../src/components/ui';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { OnboardingAnswers } from '../../src/types';
 import {
   buildProfile,
@@ -21,6 +22,9 @@ export default function PlanReveal() {
   const router = useRouter();
   const { completeOnboarding } = useApp();
   const { answers } = useLocalSearchParams<{ answers: string }>();
+  const { t } = useI18n();
+  const gLabel = (goal: string) => t(`goals.${goal}`);
+  const lLabel = (level: string) => t(`levels.${level}`);
 
   const parsed: OnboardingAnswers = useMemo(() => {
     try {
@@ -57,7 +61,7 @@ export default function PlanReveal() {
       });
       router.replace('/(tabs)');
     } catch {
-      setError('Could not save your plan. Please check your connection and try again.');
+      setError(t('plan.saveError'));
       setSaving(false);
     }
   };
@@ -67,28 +71,31 @@ export default function PlanReveal() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.badge}>
           <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-          <Text style={styles.badgeText}>Your plan is ready</Text>
+          <Text style={styles.badgeText}>{t('plan.ready')}</Text>
         </View>
 
-        <Text style={styles.title}>{planTitle(profile)}</Text>
+        <Text style={styles.title}>{t('plan.yourPlan', { goal: gLabel(profile.goal) })}</Text>
         <Text style={styles.subtitle}>
-          Built for a {profile.level} focused on {goalLabel(profile.goal).toLowerCase()},
-          {' '}training {profile.daysPerWeek} days a week.
+          {t('plan.builtFor', {
+            level: lLabel(profile.level).toLowerCase(),
+            goal: gLabel(profile.goal).toLowerCase(),
+            days: profile.daysPerWeek,
+          })}
         </Text>
 
         <GradientCard gradient="primary" style={styles.hero}>
-          <Text style={styles.heroLabel}>ESTIMATED TIME TO GOAL</Text>
-          <Text style={styles.heroValue}>{weeks} weeks</Text>
-          <Text style={styles.heroSub}>Stay consistent and you'll feel it sooner.</Text>
+          <Text style={styles.heroLabel}>{t('plan.timeToGoal')}</Text>
+          <Text style={styles.heroValue}>{t('plan.weeks', { n: weeks })}</Text>
+          <Text style={styles.heroSub}>{t('plan.stayConsistent')}</Text>
         </GradientCard>
 
         <View style={styles.statsRow}>
-          <Stat icon="flame" value={`${kcal}`} label="kcal / day" />
-          <Stat icon="calendar" value={`${profile.daysPerWeek}x`} label="per week" />
-          <Stat icon="barbell" value={`${schedule.length}`} label="workouts" />
+          <Stat icon="flame" value={`${kcal}`} label={t('plan.perDay')} />
+          <Stat icon="calendar" value={`${profile.daysPerWeek}x`} label={t('plan.perWeek')} />
+          <Stat icon="barbell" value={`${schedule.length}`} label={t('plan.workoutsLabel')} />
         </View>
 
-        <Text style={styles.sectionTitle}>Your weekly split</Text>
+        <Text style={styles.sectionTitle}>{t('plan.weeklySplit')}</Text>
         <View style={styles.list}>
           {schedule.map((w, i) => (
             <Card key={`${w.id}-${i}`} style={styles.dayRow}>
@@ -99,7 +106,7 @@ export default function PlanReveal() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.dayTitle}>{w.title}</Text>
                 <Text style={styles.dayMeta}>
-                  {w.durationMin} min · {w.exercises.length} exercises
+                  {w.durationMin} {t('common.min')} · {w.exercises.length} {t('plan.exercises')}
                 </Text>
               </View>
             </Card>
@@ -109,7 +116,7 @@ export default function PlanReveal() {
 
       <View style={styles.footer}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button label="Start my journey" onPress={start} loading={saving} />
+        <Button label={t('plan.start')} onPress={start} loading={saving} />
       </View>
     </SafeAreaView>
   );

@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { ProgressBar } from '../../src/components/ui';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { formatDuration } from '../../src/lib/format';
 import { colors, gradients, radius, spacing, typography } from '../../src/theme';
 
@@ -17,6 +18,7 @@ export default function Session() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { logWorkout, getWorkout } = useApp();
+  const { t } = useI18n();
   const workout = getWorkout(id ?? '');
 
   const [exIndex, setExIndex] = useState(0);
@@ -66,8 +68,8 @@ export default function Session() {
   if (!workout || !exercise) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.notFound}>Workout not found.</Text>
-        <Button label="Close" variant="secondary" onPress={() => router.back()} />
+        <Text style={styles.notFound}>{t('session.notFound')}</Text>
+        <Button label={t('session.close')} variant="secondary" onPress={() => router.back()} />
       </SafeAreaView>
     );
   }
@@ -123,17 +125,17 @@ export default function Session() {
             <View style={styles.doneIcon}>
               <Ionicons name="checkmark" size={64} color={colors.primaryText} />
             </View>
-            <Text style={styles.doneTitle}>Workout complete!</Text>
-            <Text style={styles.doneSub}>Great work. You showed up — that's what counts. 💪</Text>
+            <Text style={styles.doneTitle}>{t('session.complete')}</Text>
+            <Text style={styles.doneSub}>{t('session.greatWork')}</Text>
             <View style={styles.doneStats}>
-              <DoneStat value={`${workout.durationMin}`} label="minutes" />
-              <DoneStat value={`${workout.kcal}`} label="kcal" />
-              <DoneStat value={`${exercises.length}`} label="exercises" />
+              <DoneStat value={`${workout.durationMin}`} label={t('session.minutes')} />
+              <DoneStat value={`${workout.kcal}`} label={t('common.kcal')} />
+              <DoneStat value={`${exercises.length}`} label={t('session.exercisesLabel')} />
             </View>
           </View>
           <View style={styles.doneFooter}>
             <Button
-              label="Finish"
+              label={t('session.finish')}
               variant="secondary"
               onPress={() => router.replace('/(tabs)')}
             />
@@ -148,27 +150,27 @@ export default function Session() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.topBar}>
-          <Text style={styles.topBarText}>Rest</Text>
+          <Text style={styles.topBarText}>{t('session.rest')}</Text>
           <Pressable onPress={finishConfirm(router, finish)} hitSlop={12}>
             <Ionicons name="close" size={26} color={colors.textMuted} />
           </Pressable>
         </View>
         <View style={styles.restCenter}>
-          <Text style={styles.restLabel}>REST</Text>
+          <Text style={styles.restLabel}>{t('session.restCaps')}</Text>
           <Text style={styles.restTime}>{formatDuration(seconds)}</Text>
           <Text style={styles.restNext}>
-            Next: {nextLabel(exercises, exIndex, setNum, exercise.sets)}
+            {t('session.next', { name: nextLabel(t, exercises, exIndex, setNum, exercise.sets) })}
           </Text>
         </View>
         <View style={styles.footer}>
           <View style={styles.restButtons}>
             <Button
-              label="-15s"
+              label={t('session.minus15')}
               variant="secondary"
               style={{ flex: 1 }}
               onPress={() => setSeconds((s) => Math.max(1, s - 15))}
             />
-            <Button label="Skip rest" style={{ flex: 1 }} onPress={skipRest} />
+            <Button label={t('session.skipRest')} style={{ flex: 1 }} onPress={skipRest} />
           </View>
         </View>
       </SafeAreaView>
@@ -201,7 +203,7 @@ export default function Session() {
         <Text style={styles.exTitle}>{exercise.name}</Text>
         <View style={styles.setPill}>
           <Text style={styles.setPillText}>
-            Set {setNum} of {exercise.sets}
+            {t('session.setOf', { current: setNum, total: exercise.sets })}
           </Text>
         </View>
 
@@ -210,7 +212,7 @@ export default function Session() {
             {seconds > 0 ? formatDuration(seconds) : formatDuration(exercise.durationSec!)}
           </Text>
         ) : (
-          <Text style={styles.target}>{exercise.reps} reps</Text>
+          <Text style={styles.target}>{t('session.repsValue', { n: exercise.reps ?? 0 })}</Text>
         )}
 
         <View style={styles.cueBox}>
@@ -222,13 +224,13 @@ export default function Session() {
       <View style={styles.footer}>
         {isTimed && seconds === 0 ? (
           <Button
-            label="Start timer"
+            label={t('session.startTimer')}
             variant="secondary"
             onPress={() => setSeconds(exercise.durationSec!)}
           />
         ) : null}
         <Button
-          label={setNum >= exercise.sets && exIndex >= exercises.length - 1 ? 'Finish workout' : 'Done — next'}
+          label={setNum >= exercise.sets && exIndex >= exercises.length - 1 ? t('session.finishWorkout') : t('session.doneNext')}
           icon={<Ionicons name="checkmark" size={18} color={colors.primaryText} />}
           onPress={completeSet}
           style={{ marginTop: isTimed && seconds === 0 ? spacing.md : 0 }}
@@ -264,6 +266,7 @@ function DoneStat({ value, label }: { value: string; label: string }) {
 }
 
 function nextLabel(
+  t: (k: string, v?: Record<string, string | number>) => string,
   exercises: { name: string; sets: number }[],
   exIndex: number,
   setNum: number,
@@ -271,9 +274,9 @@ function nextLabel(
 ): string {
   if (setNum >= sets) {
     const next = exercises[exIndex + 1];
-    return next ? next.name : 'Finish';
+    return next ? next.name : t('session.finish');
   }
-  return `${exercises[exIndex].name} (set ${setNum + 1})`;
+  return `${exercises[exIndex].name} (${t('common.sets').toLowerCase()} ${setNum + 1})`;
 }
 
 // Lightweight confirm wrapper kept inline to avoid extra deps.

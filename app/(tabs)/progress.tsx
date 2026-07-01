@@ -12,11 +12,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/ui';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { computeStreak, lastNDays, prettyDate } from '../../src/lib/format';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Progress() {
   const { profile, logs, weightEntries, addWeight } = useApp();
+  const { t } = useI18n();
   const [input, setInput] = useState('');
 
   const totalWorkouts = logs.length;
@@ -56,19 +58,19 @@ export default function Progress() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Progress</Text>
+        <Text style={styles.title}>{t('progress.title')}</Text>
 
         {/* Headline stats */}
         <View style={styles.statsGrid}>
-          <StatBox icon="barbell" value={`${totalWorkouts}`} label="Workouts" color={colors.primary} />
-          <StatBox icon="flame" value={`${totalKcal}`} label="Calories" color={colors.accent2} />
-          <StatBox icon="time" value={`${totalMin}`} label="Minutes" color={colors.accent3} />
-          <StatBox icon="trophy" value={`${streak}d`} label="Streak" color={colors.accent4} />
+          <StatBox icon="barbell" value={`${totalWorkouts}`} label={t('progress.workouts')} color={colors.primary} />
+          <StatBox icon="flame" value={`${totalKcal}`} label={t('progress.calories')} color={colors.accent2} />
+          <StatBox icon="time" value={`${totalMin}`} label={t('progress.minutes')} color={colors.accent3} />
+          <StatBox icon="trophy" value={`${streak}d`} label={t('progress.streak')} color={colors.accent4} />
         </View>
 
         {/* Activity chart */}
         <Card style={styles.section}>
-          <Text style={styles.cardTitle}>Last 7 days</Text>
+          <Text style={styles.cardTitle}>{t('progress.last7')}</Text>
           <View style={styles.chart}>
             {countByDay.map((d) => (
               <View key={d.date} style={styles.barCol}>
@@ -97,7 +99,7 @@ export default function Progress() {
         <Card style={styles.section}>
           <View style={styles.weightHeader}>
             <View>
-              <Text style={styles.cardTitle}>Weight</Text>
+              <Text style={styles.cardTitle}>{t('progress.weight')}</Text>
               <Text style={styles.weightCurrent}>
                 {currentW != null ? `${currentW} kg` : '—'}
                 {target != null ? <Text style={styles.weightTarget}>  →  {target} kg</Text> : null}
@@ -141,14 +143,14 @@ export default function Progress() {
               ))}
             </View>
           ) : (
-            <Text style={styles.hint}>Log your weight to see the trend.</Text>
+            <Text style={styles.hint}>{t('progress.logHint')}</Text>
           )}
 
           <View style={styles.weightInputRow}>
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Today's weight (kg)"
+              placeholder={t('progress.todaysWeight')}
               placeholderTextColor={colors.textFaint}
               keyboardType="decimal-pad"
               style={styles.input}
@@ -162,10 +164,10 @@ export default function Progress() {
         </Card>
 
         {/* Recent activity */}
-        <Text style={[styles.title, styles.recentTitle]}>Recent activity</Text>
+        <Text style={[styles.title, styles.recentTitle]}>{t('progress.recent')}</Text>
         {logs.length === 0 ? (
           <Card>
-            <Text style={styles.hint}>No workouts logged yet. Time to start! 💪</Text>
+            <Text style={styles.hint}>{t('progress.noneYet')}</Text>
           </Card>
         ) : (
           <View style={styles.activityList}>

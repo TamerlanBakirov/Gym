@@ -7,11 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { ProgressBar } from '../../src/components/ui';
 import { QUIZ_STEPS } from '../../src/data/onboarding';
+import { useI18n } from '../../src/i18n';
 import { OnboardingAnswers } from '../../src/types';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Quiz() {
   const router = useRouter();
+  const { t } = useI18n();
+  // Returns null when a key is missing (so optional subtitles/subs can be hidden).
+  const tt = (key: string): string | null => {
+    const v = t(key);
+    return v === key ? null : v;
+  };
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<OnboardingAnswers>({});
 
@@ -72,8 +79,10 @@ export default function Quiz() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.title}>{step.title}</Text>
-        {step.subtitle ? <Text style={styles.subtitle}>{step.subtitle}</Text> : null}
+        <Text style={styles.title}>{t(`quiz.${step.key}.title`)}</Text>
+        {tt(`quiz.${step.key}.subtitle`) ? (
+          <Text style={styles.subtitle}>{tt(`quiz.${step.key}.subtitle`)}</Text>
+        ) : null}
 
         <View style={styles.options}>
           {step.options.map((opt) => {
@@ -92,9 +101,11 @@ export default function Quiz() {
                 <Text style={styles.optionEmoji}>{opt.emoji}</Text>
                 <View style={styles.optionTextWrap}>
                   <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
-                    {opt.label}
+                    {t(`quiz.${step.key}.${opt.value}`)}
                   </Text>
-                  {opt.sub ? <Text style={styles.optionSub}>{opt.sub}</Text> : null}
+                  {tt(`quiz.${step.key}.${opt.value}_sub`) ? (
+                    <Text style={styles.optionSub}>{tt(`quiz.${step.key}.${opt.value}_sub`)}</Text>
+                  ) : null}
                 </View>
                 {step.type === 'multi' ? (
                   <View style={[styles.check, active && styles.checkActive]}>
@@ -118,7 +129,7 @@ export default function Quiz() {
       {step.type === 'multi' ? (
         <View style={styles.footer}>
           <Button
-            label="Continue"
+            label={t('common.continue')}
             disabled={selectedMulti.length === 0}
             onPress={() => advance(answers)}
           />

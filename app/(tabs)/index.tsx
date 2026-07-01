@@ -6,14 +6,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Eyebrow, ProgressBar } from '../../src/components/ui';
 import { WorkoutCard } from '../../src/components/WorkoutCard';
 import { useApp } from '../../src/store/AppContext';
-import { computeStreak, greeting, todayISO } from '../../src/lib/format';
+import { useI18n } from '../../src/i18n';
+import { computeStreak, todayISO } from '../../src/lib/format';
 import { recommendSchedule } from '../../src/lib/plan';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Today() {
   const router = useRouter();
   const { profile, logs, workouts } = useApp();
+  const { t } = useI18n();
   const safeProfile = profile!;
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? t('today.greetingMorning')
+      : hour < 18
+        ? t('today.greetingAfternoon')
+        : t('today.greetingEvening');
 
   const schedule = useMemo(
     () => recommendSchedule(safeProfile, workouts),
@@ -44,7 +53,7 @@ export default function Today() {
         {/* Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>{greeting()},</Text>
+            <Text style={styles.greeting}>{greeting},</Text>
             <Text style={styles.name}>{safeProfile.name} 👋</Text>
           </View>
           <View style={styles.streakChip}>
@@ -56,28 +65,28 @@ export default function Today() {
         {/* Weekly goal */}
         <Card style={styles.goalCard}>
           <View style={styles.goalHeader}>
-            <Eyebrow>This week</Eyebrow>
+            <Eyebrow>{t('today.thisWeek')}</Eyebrow>
             <Text style={styles.goalCount}>
-              {weeklyDone}/{weeklyTarget} workouts
+              {t('today.workoutsCount', { done: weeklyDone, target: weeklyTarget })}
             </Text>
           </View>
           <ProgressBar progress={weeklyTarget ? weeklyDone / weeklyTarget : 0} />
           <View style={styles.goalStats}>
-            <MiniStat label="Sessions" value={`${weekLogs.length}`} />
+            <MiniStat label={t('today.sessions')} value={`${weekLogs.length}`} />
             <View style={styles.divider} />
-            <MiniStat label="Calories" value={`${kcalWeek}`} />
+            <MiniStat label={t('today.calories')} value={`${kcalWeek}`} />
             <View style={styles.divider} />
-            <MiniStat label="Streak" value={`${streak}d`} />
+            <MiniStat label={t('today.streak')} value={`${streak}d`} />
           </View>
         </Card>
 
         {/* Today's workout */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today's workout</Text>
+          <Text style={styles.sectionTitle}>{t('today.todaysWorkout')}</Text>
           {doneToday ? (
             <View style={styles.doneTag}>
               <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={styles.doneText}>{t('today.doneTag')}</Text>
             </View>
           ) : null}
         </View>
@@ -92,18 +101,18 @@ export default function Today() {
         <View style={styles.quickRow}>
           <QuickAction
             icon="list"
-            label="All workouts"
+            label={t('today.allWorkouts')}
             onPress={() => router.push('/(tabs)/workouts')}
           />
           <QuickAction
             icon="trending-up"
-            label="Log weight"
+            label={t('today.logWeight')}
             onPress={() => router.push('/(tabs)/progress')}
           />
         </View>
 
         {/* Up next */}
-        <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>Up next</Text>
+        <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>{t('today.upNext')}</Text>
         <View style={styles.upNext}>
           {schedule.slice(1, 4).map((w, i) => (
             <Pressable
@@ -115,7 +124,7 @@ export default function Today() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.upNextTitle}>{w.title}</Text>
                 <Text style={styles.upNextMeta}>
-                  {w.durationMin} min · {w.kcal} kcal
+                  {w.durationMin} {t('common.min')} · {w.kcal} kcal
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textFaint} />

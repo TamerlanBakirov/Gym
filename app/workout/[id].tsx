@@ -6,18 +6,20 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { useApp } from '../../src/store/AppContext';
+import { useI18n } from '../../src/i18n';
 import { colors, gradients, radius, spacing, typography } from '../../src/theme';
 
 export default function WorkoutDetail() {
   const router = useRouter();
   const { getWorkout } = useApp();
+  const { t } = useI18n();
   const { id } = useLocalSearchParams<{ id: string }>();
   const workout = getWorkout(id ?? '');
 
   if (!workout) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.notFound}>Workout not found.</Text>
+        <Text style={styles.notFound}>{t('detail.notFound')}</Text>
       </SafeAreaView>
     );
   }
@@ -33,9 +35,9 @@ export default function WorkoutDetail() {
           <Text style={styles.heroTitle}>{workout.title}</Text>
           <Text style={styles.heroSub}>{workout.subtitle}</Text>
           <View style={styles.heroMeta}>
-            <HeroMeta icon="time" text={`${workout.durationMin} min`} />
+            <HeroMeta icon="time" text={`${workout.durationMin} ${t('common.min')}`} />
             <HeroMeta icon="flame" text={`${workout.kcal} kcal`} />
-            <HeroMeta icon="barbell" text={`${workout.exercises.length} moves`} />
+            <HeroMeta icon="barbell" text={`${workout.exercises.length} ${t('common.moves')}`} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -45,7 +47,7 @@ export default function WorkoutDetail() {
         contentContainerStyle={styles.content}
         style={styles.scroll}
       >
-        <Text style={styles.sectionTitle}>Exercises</Text>
+        <Text style={styles.sectionTitle}>{t('detail.exercises')}</Text>
         {workout.exercises.map((ex, i) => (
           <View key={`${ex.id}-${i}`} style={styles.exRow}>
             <Text style={styles.exIndex}>{String(i + 1).padStart(2, '0')}</Text>
@@ -53,8 +55,8 @@ export default function WorkoutDetail() {
             <View style={{ flex: 1 }}>
               <Text style={styles.exName}>{ex.name}</Text>
               <Text style={styles.exMeta}>
-                {ex.sets} sets ·{' '}
-                {ex.durationSec ? `${ex.durationSec}s` : `${ex.reps} reps`} · {ex.restSec}s rest
+                {ex.sets} {t('common.sets')} ·{' '}
+                {ex.durationSec ? `${ex.durationSec}s` : `${ex.reps} ${t('common.reps')}`} · {ex.restSec}s {t('common.rest')}
               </Text>
             </View>
           </View>
@@ -64,7 +66,7 @@ export default function WorkoutDetail() {
 
       <SafeAreaView edges={['bottom']} style={styles.footer}>
         <Button
-          label="Start workout"
+          label={t('detail.start')}
           icon={<Ionicons name="play" size={18} color={colors.primaryText} />}
           onPress={() =>
             router.push({ pathname: '/workout/session', params: { id: workout.id } })

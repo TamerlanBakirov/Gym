@@ -16,10 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { Api } from '../../src/api';
 import { ApiError } from '../../src/api/client';
+import { useI18n } from '../../src/i18n';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function ResetPassword() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -30,17 +32,17 @@ export default function ResetPassword() {
 
   const sendCode = async () => {
     setError(null);
-    if (!email.trim()) return setError('Please enter your email.');
+    if (!email.trim()) return setError(t('reset.enterEmail'));
     setLoading(true);
     try {
       const res = await Api.forgotPassword(email.trim());
       if (res.devCode) {
         setCode(res.devCode);
-        setDevHint(`Dev mode: your code is ${res.devCode}`);
+        setDevHint(t('reset.devCode', { code: res.devCode }));
       }
       setStep(2);
     } catch {
-      setError('Could not reach the server. Please try again.');
+      setError(t('reset.serverError'));
     } finally {
       setLoading(false);
     }
@@ -48,14 +50,14 @@ export default function ResetPassword() {
 
   const submitReset = async () => {
     setError(null);
-    if (code.length !== 6) return setError('Enter the 6-digit code from your email.');
-    if (password.length < 6) return setError('Password must be at least 6 characters.');
+    if (code.length !== 6) return setError(t('reset.enterCode'));
+    if (password.length < 6) return setError(t('reset.shortPass'));
     setLoading(true);
     try {
       await Api.resetPassword(email.trim(), code, password);
       router.replace('/auth');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reset your password.');
+      setError(err instanceof ApiError ? err.message : t('reset.resetError'));
     } finally {
       setLoading(false);
     }
@@ -74,11 +76,11 @@ export default function ResetPassword() {
               <Ionicons name="chevron-back" size={26} color={colors.text} />
             </Pressable>
 
-            <Text style={styles.title}>Reset password</Text>
+            <Text style={styles.title}>{t('reset.title')}</Text>
             <Text style={styles.subtitle}>
               {step === 1
-                ? "Enter your email and we'll send you a reset code."
-                : 'Enter the code and choose a new password.'}
+                ? t('reset.subEmail')
+                : t('reset.subCode')}
             </Text>
 
             <View style={styles.form}>
@@ -86,7 +88,7 @@ export default function ResetPassword() {
                 <>
                   <Field
                     icon="mail-outline"
-                    placeholder="Email"
+                    placeholder={t('auth.email')}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -94,7 +96,7 @@ export default function ResetPassword() {
                   />
                   {error ? <ErrorText text={error} /> : null}
                   <Button
-                    label="Send code"
+                    label={t('reset.sendCode')}
                     onPress={sendCode}
                     loading={loading}
                     style={{ marginTop: spacing.md }}
@@ -105,7 +107,7 @@ export default function ResetPassword() {
                   {devHint ? <Text style={styles.devHint}>{devHint}</Text> : null}
                   <Field
                     icon="keypad-outline"
-                    placeholder="6-digit code"
+                    placeholder={t('reset.code')}
                     value={code}
                     onChangeText={setCode}
                     keyboardType="number-pad"
@@ -113,7 +115,7 @@ export default function ResetPassword() {
                   />
                   <Field
                     icon="lock-closed-outline"
-                    placeholder="New password"
+                    placeholder={t('reset.newPassword')}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -121,13 +123,13 @@ export default function ResetPassword() {
                   />
                   {error ? <ErrorText text={error} /> : null}
                   <Button
-                    label="Reset password"
+                    label={t('reset.resetBtn')}
                     onPress={submitReset}
                     loading={loading}
                     style={{ marginTop: spacing.md }}
                   />
                   <Pressable onPress={sendCode} style={styles.resend}>
-                    <Text style={styles.resendText}>Resend code</Text>
+                    <Text style={styles.resendText}>{t('reset.resend')}</Text>
                   </Pressable>
                 </>
               )}
