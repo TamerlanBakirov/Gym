@@ -70,6 +70,7 @@ export interface Exercise {
   /** short coaching cue */
   cue: string;
   emoji: string;
+  imageUrl?: string | null;
 }
 
 export interface Workout {
@@ -83,6 +84,7 @@ export interface Workout {
   exercises: Exercise[];
   gradient: 'violet' | 'coral' | 'sky' | 'amber' | 'primary';
   emoji: string;
+  imageUrl?: string | null;
 }
 
 export interface WorkoutPlan {

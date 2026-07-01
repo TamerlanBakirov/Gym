@@ -14,7 +14,9 @@ import {
   getExpoPushToken,
   scheduleDailyReminder,
 } from '../lib/notifications';
-import { ProgressEntry, UserProfile, WorkoutLog } from '../types';
+import { loadCatalog } from '../lib/catalog';
+import { WORKOUTS as BUNDLED_WORKOUTS } from '../data/workouts';
+import { ProgressEntry, UserProfile, Workout, WorkoutLog } from '../types';
 
 /** Turn workout reminders on/off: schedule local notification + register push token. */
 async function applyReminderState(enabled: boolean) {
@@ -72,6 +74,9 @@ type Ctx = {
   logs: WorkoutLog[];
   weightEntries: ProgressEntry[];
   settings: { reminders: boolean; units: 'metric' | 'imperial' };
+  // catalog
+  workouts: Workout[];
+  getWorkout: (id: string) => Workout | undefined;
   // auth
   register: (email: string, password: string, name: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -94,6 +99,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [apiProfile, setApiProfile] = useState<ApiProfile | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [weightEntries, setWeightEntries] = useState<ProgressEntry[]>([]);
+  const [catalog, setCatalog] = useState<Workout[]>(BUNDLED_WORKOUTS);
+
+  // Load the workout catalog from the backend (cached, with bundled fallback).
+  useEffect(() => {
+    loadCatalog().then(setCatalog).catch(() => {});
+  }, []);
 
   const clearSession = useCallback(() => {
     setUser(null);
@@ -237,6 +248,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       apiProfile,
       logs,
       weightEntries,
+      workouts: catalog,
+      getWorkout: (id: string) => catalog.find((w) => w.id === id),
       settings: {
         reminders: apiProfile?.reminders ?? true,
         units: apiProfile?.units ?? 'metric',
@@ -259,6 +272,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       profile,
       logs,
       weightEntries,
+      catalog,
       register,
       login,
       logout,

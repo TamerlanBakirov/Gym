@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
-import { getWorkout } from '../../src/data/workouts';
+import { useApp } from '../../src/store/AppContext';
 import { colors, gradients, radius, spacing, typography } from '../../src/theme';
 
 export default function WorkoutDetail() {
   const router = useRouter();
+  const { getWorkout } = useApp();
   const { id } = useLocalSearchParams<{ id: string }>();
   const workout = getWorkout(id ?? '');
 
@@ -48,7 +49,7 @@ export default function WorkoutDetail() {
         {workout.exercises.map((ex, i) => (
           <View key={`${ex.id}-${i}`} style={styles.exRow}>
             <Text style={styles.exIndex}>{String(i + 1).padStart(2, '0')}</Text>
-            <Text style={styles.exEmoji}>{ex.emoji}</Text>
+            <ExerciseThumb uri={ex.imageUrl} emoji={ex.emoji} />
             <View style={{ flex: 1 }}>
               <Text style={styles.exName}>{ex.name}</Text>
               <Text style={styles.exMeta}>
@@ -70,6 +71,26 @@ export default function WorkoutDetail() {
           }
         />
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** Exercise thumbnail with graceful emoji fallback. */
+function ExerciseThumb({ uri, emoji }: { uri?: string | null; emoji: string }) {
+  const [err, setErr] = useState(false);
+  if (uri && !err) {
+    return (
+      <Image
+        source={{ uri }}
+        style={styles.exThumb}
+        onError={() => setErr(true)}
+        resizeMode="cover"
+      />
+    );
+  }
+  return (
+    <View style={styles.exThumbFallback}>
+      <Text style={styles.exEmoji}>{emoji}</Text>
     </View>
   );
 }
@@ -116,7 +137,16 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   exIndex: { ...typography.caption, color: colors.textFaint, width: 24 },
-  exEmoji: { fontSize: 28 },
+  exEmoji: { fontSize: 24 },
+  exThumb: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
+  exThumbFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   exName: { ...typography.h3, color: colors.text },
   exMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   spacer: { height: spacing.xl },

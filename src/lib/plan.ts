@@ -26,9 +26,13 @@ export const buildProfile = (a: OnboardingAnswers, name = 'Athlete'): UserProfil
 });
 
 /** Pick a weekly schedule of workouts that matches the user's profile. */
-export const recommendSchedule = (profile: UserProfile): Workout[] => {
+export const recommendSchedule = (
+  profile: UserProfile,
+  workouts: Workout[] = WORKOUTS
+): Workout[] => {
+  const source = workouts.length ? workouts : WORKOUTS;
   const targets = new Set(profile.targetAreas);
-  const scored = WORKOUTS.map((w) => {
+  const scored = source.map((w) => {
     let score = 0;
     if (targets.has(w.muscle)) score += 3;
     if (profile.goal === 'lose_weight' && (w.muscle === 'cardio' || w.muscle === 'fullbody'))

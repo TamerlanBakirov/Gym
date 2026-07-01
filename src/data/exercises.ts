@@ -1,4 +1,5 @@
 import { Exercise } from '../types';
+import { MUSCLE_IMAGE } from './images';
 
 /**
  * Exercise library. Each exercise is reusable across workouts.
@@ -193,5 +194,10 @@ export const EXERCISES: Record<string, Exercise> = {
     emoji: '🏃',
   },
 };
+
+// Attach curated imagery by muscle group (offline fallback for the catalog).
+for (const ex of Object.values(EXERCISES)) {
+  ex.imageUrl = MUSCLE_IMAGE[ex.muscle] ?? null;
+}
 
 export const exerciseList = Object.values(EXERCISES);

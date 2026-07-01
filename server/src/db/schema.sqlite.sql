@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS exercises (
   rest_sec     INTEGER NOT NULL,
   equipment    TEXT NOT NULL,
   cue          TEXT NOT NULL,
-  emoji        TEXT NOT NULL
+  emoji        TEXT NOT NULL,
+  image_url    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workouts (
@@ -69,7 +70,8 @@ CREATE TABLE IF NOT EXISTS workouts (
   duration_min INTEGER NOT NULL,
   kcal         INTEGER NOT NULL,
   gradient     TEXT NOT NULL,
-  emoji        TEXT NOT NULL
+  emoji        TEXT NOT NULL,
+  image_url    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workout_exercises (

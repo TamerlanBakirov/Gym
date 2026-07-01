@@ -53,6 +53,36 @@ export interface ApiStats {
   week: { date: string; count: number }[];
 }
 
+export interface ApiExercise {
+  id: string;
+  slug: string;
+  name: string;
+  muscle: string;
+  durationSec: number | null;
+  reps: number | null;
+  sets: number;
+  restSec: number;
+  equipment: string;
+  cue: string;
+  emoji: string;
+  imageUrl: string | null;
+}
+
+export interface ApiWorkout {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  muscle: string;
+  level: string;
+  durationMin: number;
+  kcal: number;
+  gradient: string;
+  emoji: string;
+  imageUrl: string | null;
+  exercises: ApiExercise[];
+}
+
 export interface ApiPlan {
   title: string;
   goalLabel: string;
@@ -146,6 +176,11 @@ export const Api = {
       method: 'POST',
       body: { expoPushToken },
     });
+  },
+
+  // --- Catalog (public) ---
+  workouts() {
+    return api<{ workouts: ApiWorkout[] }>('/workouts', { auth: false });
   },
 
   // --- Plan & stats ---

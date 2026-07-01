@@ -3,11 +3,10 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { ProgressBar } from '../../src/components/ui';
-import { getWorkout } from '../../src/data/workouts';
 import { useApp } from '../../src/store/AppContext';
 import { formatDuration } from '../../src/lib/format';
 import { colors, gradients, radius, spacing, typography } from '../../src/theme';
@@ -17,7 +16,7 @@ type Phase = 'active' | 'rest' | 'done';
 export default function Session() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { logWorkout } = useApp();
+  const { logWorkout, getWorkout } = useApp();
   const workout = getWorkout(id ?? '');
 
   const [exIndex, setExIndex] = useState(0);
@@ -194,7 +193,11 @@ export default function Session() {
       </View>
 
       <View style={styles.activeCenter}>
-        <Text style={styles.bigEmoji}>{exercise.emoji}</Text>
+        <ExerciseVisual
+          key={`${exIndex}-${exercise.id}`}
+          uri={exercise.imageUrl}
+          emoji={exercise.emoji}
+        />
         <Text style={styles.exTitle}>{exercise.name}</Text>
         <View style={styles.setPill}>
           <Text style={styles.setPillText}>
@@ -233,6 +236,22 @@ export default function Session() {
       </View>
     </SafeAreaView>
   );
+}
+
+/** Large exercise visual with graceful emoji fallback. */
+function ExerciseVisual({ uri, emoji }: { uri?: string | null; emoji: string }) {
+  const [err, setErr] = useState(false);
+  if (uri && !err) {
+    return (
+      <Image
+        source={{ uri }}
+        style={styles.visual}
+        onError={() => setErr(true)}
+        resizeMode="cover"
+      />
+    );
+  }
+  return <Text style={styles.bigEmoji}>{emoji}</Text>;
 }
 
 function DoneStat({ value, label }: { value: string; label: string }) {
@@ -276,6 +295,12 @@ const styles = StyleSheet.create({
   progressWrap: { marginTop: spacing.md },
   activeCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   bigEmoji: { fontSize: 96 },
+  visual: {
+    width: 220,
+    height: 220,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surfaceAlt,
+  },
   exTitle: { ...typography.display, color: colors.text, marginTop: spacing.lg, textAlign: 'center' },
   setPill: {
     backgroundColor: colors.surfaceAlt,

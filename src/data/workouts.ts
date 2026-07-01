@@ -1,5 +1,6 @@
 import { Workout } from '../types';
 import { EXERCISES } from './exercises';
+import { WORKOUT_IMAGE } from './images';
 
 const e = EXERCISES;
 
@@ -78,5 +79,10 @@ export const WORKOUTS: Workout[] = [
     exercises: [e.jumpingJack, e.gluteBridge, e.inclinePushup, e.plank],
   },
 ];
+
+// Attach curated cover imagery (offline fallback for the catalog).
+for (const w of WORKOUTS) {
+  w.imageUrl = WORKOUT_IMAGE[w.id] ?? null;
+}
 
 export const getWorkout = (id: string) => WORKOUTS.find((w) => w.id === id);

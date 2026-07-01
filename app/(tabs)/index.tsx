@@ -12,10 +12,13 @@ import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Today() {
   const router = useRouter();
-  const { profile, logs } = useApp();
+  const { profile, logs, workouts } = useApp();
   const safeProfile = profile!;
 
-  const schedule = useMemo(() => recommendSchedule(safeProfile), [safeProfile]);
+  const schedule = useMemo(
+    () => recommendSchedule(safeProfile, workouts),
+    [safeProfile, workouts]
+  );
   const todaysWorkout = useMemo(() => {
     const dow = new Date().getDay();
     return schedule[dow % schedule.length];

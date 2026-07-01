@@ -13,6 +13,7 @@ interface ExerciseRow {
   equipment: string;
   cue: string;
   emoji: string;
+  image_url: string | null;
 }
 
 interface WorkoutRow {
@@ -26,6 +27,7 @@ interface WorkoutRow {
   kcal: number;
   gradient: string;
   emoji: string;
+  image_url: string | null;
 }
 
 const toExercise = (r: ExerciseRow): Exercise => ({
@@ -40,6 +42,7 @@ const toExercise = (r: ExerciseRow): Exercise => ({
   equipment: r.equipment,
   cue: r.cue,
   emoji: r.emoji,
+  imageUrl: r.image_url,
 });
 
 async function exercisesFor(workoutId: string): Promise<Exercise[]> {
@@ -64,6 +67,7 @@ const toWorkout = async (r: WorkoutRow): Promise<Workout> => ({
   kcal: r.kcal,
   gradient: r.gradient,
   emoji: r.emoji,
+  imageUrl: r.image_url,
   exercises: await exercisesFor(r.id),
 });
 

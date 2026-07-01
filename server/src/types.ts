@@ -38,6 +38,7 @@ export interface Exercise {
   equipment: string;
   cue: string;
   emoji: string;
+  imageUrl: string | null;
 }
 
 export interface Workout {
@@ -51,6 +52,7 @@ export interface Workout {
   kcal: number;
   gradient: string;
   emoji: string;
+  imageUrl: string | null;
   exercises: Exercise[];
 }
 

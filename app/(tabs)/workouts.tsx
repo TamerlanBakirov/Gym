@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WorkoutCard } from '../../src/components/WorkoutCard';
-import { WORKOUTS } from '../../src/data/workouts';
+import { useApp } from '../../src/store/AppContext';
 import { MuscleGroup } from '../../src/types';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
@@ -20,18 +20,19 @@ const FILTERS: { key: Filter; label: string }[] = [
 
 export default function Workouts() {
   const router = useRouter();
+  const { workouts } = useApp();
   const [filter, setFilter] = useState<Filter>('all');
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return WORKOUTS;
-    return WORKOUTS.filter((w) => w.muscle === filter);
-  }, [filter]);
+    if (filter === 'all') return workouts;
+    return workouts.filter((w) => w.muscle === filter);
+  }, [filter, workouts]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Workouts</Text>
-        <Text style={styles.subtitle}>{WORKOUTS.length} programs ready for you</Text>
+        <Text style={styles.subtitle}>{workouts.length} programs ready for you</Text>
       </View>
 
       <ScrollView
