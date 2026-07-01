@@ -4,8 +4,12 @@ import { z } from 'zod';
 import { asyncHandler, ApiError } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { isProd } from '../../env.js';
 import { authService } from './auth.service.js';
 import { profilesRepo, usersRepo } from '../users/users.repo.js';
+
+// Include the code in responses only outside production (no email provider wired up).
+const withDevCode = (code: string | null) => (isProd || !code ? {} : { devCode: code });
 
 export const authRouter = Router();
 
@@ -78,5 +82,56 @@ authRouter.get(
     const user = await usersRepo.findById(req.userId!);
     if (!user) throw ApiError.unauthorized('Account no longer exists');
     res.json({ user, profile: await profilesRepo.get(user.id) });
+  })
+);
+
+// --- Email verification ---
+authRouter.post(
+  '/verify/request',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const user = await usersRepo.findById(req.userId!);
+    if (!user) throw ApiError.unauthorized('Account no longer exists');
+    if (user.emailVerified) return res.json({ ok: true, alreadyVerified: true });
+    const code = await authService.requestEmailVerification(user.id, user.email);
+    res.json({ ok: true, ...withDevCode(code) });
+  })
+);
+
+authRouter.post(
+  '/verify/confirm',
+  requireAuth,
+  validate({ body: z.object({ code: z.string().length(6) }) }),
+  asyncHandler(async (req, res) => {
+    await authService.confirmEmailVerification(req.userId!, req.body.code);
+    res.json({ ok: true });
+  })
+);
+
+// --- Password reset ---
+authRouter.post(
+  '/password/forgot',
+  authLimiter,
+  validate({ body: z.object({ email: z.string().email() }) }),
+  asyncHandler(async (req, res) => {
+    const code = await authService.requestPasswordReset(req.body.email);
+    // Always 200 to avoid revealing whether the email is registered.
+    res.json({ ok: true, ...withDevCode(code) });
+  })
+);
+
+authRouter.post(
+  '/password/reset',
+  authLimiter,
+  validate({
+    body: z.object({
+      email: z.string().email(),
+      code: z.string().length(6),
+      password: z.string().min(6).max(100),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    await authService.resetPassword(req.body.email, req.body.code, req.body.password);
+    res.json({ ok: true });
   })
 );

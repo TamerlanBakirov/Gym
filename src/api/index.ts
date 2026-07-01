@@ -6,6 +6,7 @@ export interface ApiUser {
   id: string;
   email: string;
   name: string;
+  emailVerified: boolean;
   createdAt: string;
 }
 
@@ -102,6 +103,33 @@ export const Api = {
 
   me() {
     return api<{ user: ApiUser; profile: ApiProfile | null }>('/auth/me');
+  },
+
+  // --- Email verification ---
+  requestEmailVerification() {
+    return api<{ ok: boolean; devCode?: string; alreadyVerified?: boolean }>(
+      '/auth/verify/request',
+      { method: 'POST' }
+    );
+  },
+  confirmEmailVerification(code: string) {
+    return api<{ ok: boolean }>('/auth/verify/confirm', { method: 'POST', body: { code } });
+  },
+
+  // --- Password reset (pre-auth) ---
+  forgotPassword(email: string) {
+    return api<{ ok: boolean; devCode?: string }>('/auth/password/forgot', {
+      method: 'POST',
+      body: { email },
+      auth: false,
+    });
+  },
+  resetPassword(email: string, code: string, password: string) {
+    return api<{ ok: boolean }>('/auth/password/reset', {
+      method: 'POST',
+      body: { email, code, password },
+      auth: false,
+    });
   },
 
   // --- Profile ---

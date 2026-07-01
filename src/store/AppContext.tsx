@@ -81,6 +81,8 @@ type Ctx = {
   updateSettings: (patch: { reminders?: boolean; units?: 'metric' | 'imperial' }) => Promise<void>;
   logWorkout: (log: { workoutId?: string | null; workoutTitle: string; durationMin: number; kcal: number }) => Promise<void>;
   addWeight: (weightKg: number) => Promise<void>;
+  requestEmailVerification: () => Promise<{ devCode?: string; alreadyVerified?: boolean }>;
+  confirmEmailVerification: (code: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -194,6 +196,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setApiProfile((p) => (p ? { ...p, weightKg } : p));
   }, []);
 
+  const requestEmailVerification = useCallback(async () => {
+    const res = await Api.requestEmailVerification();
+    return { devCode: res.devCode, alreadyVerified: res.alreadyVerified };
+  }, []);
+
+  const confirmEmailVerification = useCallback(async (code: string) => {
+    await Api.confirmEmailVerification(code);
+    setUser((u) => (u ? { ...u, emailVerified: true } : u));
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!tokenStore.hasSession()) return;
     const me = await Api.me();
@@ -236,6 +248,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateSettings,
       logWorkout,
       addWeight,
+      requestEmailVerification,
+      confirmEmailVerification,
       refresh,
     }),
     [
@@ -252,6 +266,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateSettings,
       logWorkout,
       addWeight,
+      requestEmailVerification,
+      confirmEmailVerification,
       refresh,
     ]
   );

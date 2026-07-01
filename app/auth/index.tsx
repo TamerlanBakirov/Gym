@@ -124,6 +124,12 @@ export default function Auth() {
                 loading={loading}
                 style={{ marginTop: spacing.md }}
               />
+
+              {!isRegister ? (
+                <Pressable onPress={() => router.push('/auth/reset')} style={styles.forgot}>
+                  <Text style={styles.forgotText}>Forgot password?</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <Pressable
@@ -198,6 +204,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   errorText: { ...typography.caption, color: colors.danger, flex: 1 },
+  forgot: { alignItems: 'center', marginTop: spacing.xs },
+  forgotText: { ...typography.caption, color: colors.textMuted },
   switchRow: { alignItems: 'center', marginTop: spacing.xl },
   switchText: { ...typography.body, color: colors.textMuted },
   switchLink: { color: colors.primary, fontWeight: '700' },

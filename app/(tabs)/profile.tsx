@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '../../src/components/ui';
 import { useApp } from '../../src/store/AppContext';
@@ -10,8 +19,49 @@ import { colors, radius, spacing, typography } from '../../src/theme';
 
 export default function Profile() {
   const router = useRouter();
-  const { profile: p, settings, updateSettings, logout } = useApp();
+  const { user, profile: p, settings, updateSettings, logout, requestEmailVerification, confirmEmailVerification } =
+    useApp();
   const profile = p!;
+
+  // Email verification flow state.
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [verifyHint, setVerifyHint] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
+
+  const startVerify = async () => {
+    setVerifyError(null);
+    setVerifyBusy(true);
+    try {
+      const res = await requestEmailVerification();
+      if (res.alreadyVerified) return;
+      setVerifyOpen(true);
+      if (res.devCode) {
+        setVerifyCode(res.devCode);
+        setVerifyHint(`Dev mode: your code is ${res.devCode}`);
+      }
+    } catch {
+      setVerifyError('Could not send a code. Try again.');
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
+
+  const submitVerify = async () => {
+    setVerifyError(null);
+    if (verifyCode.length !== 6) return setVerifyError('Enter the 6-digit code.');
+    setVerifyBusy(true);
+    try {
+      await confirmEmailVerification(verifyCode);
+      setVerifyOpen(false);
+      setVerifyCode('');
+    } catch {
+      setVerifyError('Invalid or expired code.');
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   const confirmLogout = () => {
     Alert.alert('Log out?', 'You can log back in any time.', [
@@ -51,6 +101,48 @@ export default function Profile() {
             <IdStat value={`${profile.daysPerWeek}x`} label="per week" />
           </View>
         </Card>
+
+        {/* Email verification */}
+        {user && !user.emailVerified ? (
+          <Card style={styles.verifyCard}>
+            <View style={styles.verifyHeader}>
+              <View style={styles.verifyIcon}>
+                <Ionicons name="mail-unread" size={18} color={colors.accent4} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.verifyTitle}>Verify your email</Text>
+                <Text style={styles.verifySub}>{user.email}</Text>
+              </View>
+              {!verifyOpen ? (
+                <TouchableOpacity style={styles.verifyBtn} onPress={startVerify} disabled={verifyBusy}>
+                  <Text style={styles.verifyBtnText}>{verifyBusy ? '…' : 'Send code'}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {verifyOpen ? (
+              <View style={styles.verifyBody}>
+                {verifyHint ? <Text style={styles.verifyDevHint}>{verifyHint}</Text> : null}
+                <View style={styles.verifyRow}>
+                  <TextInput
+                    value={verifyCode}
+                    onChangeText={setVerifyCode}
+                    placeholder="6-digit code"
+                    placeholderTextColor={colors.textFaint}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    style={styles.verifyInput}
+                  />
+                  <TouchableOpacity style={styles.verifyConfirm} onPress={submitVerify} disabled={verifyBusy}>
+                    <Text style={styles.verifyConfirmText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
+
+            {verifyError ? <Text style={styles.verifyErr}>{verifyError}</Text> : null}
+          </Card>
+        ) : null}
 
         {/* Goals */}
         <Text style={styles.sectionTitle}>Your goals</Text>
@@ -184,6 +276,48 @@ const styles = StyleSheet.create({
   idLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   idDivider: { width: 1, height: 30, backgroundColor: colors.border },
   sectionTitle: { ...typography.h3, color: colors.text, marginTop: spacing.xl, marginBottom: spacing.md },
+  verifyCard: { marginTop: spacing.lg, borderColor: 'rgba(255,177,62,0.35)' },
+  verifyHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  verifyIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,177,62,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyTitle: { ...typography.h3, color: colors.text },
+  verifySub: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  verifyBtn: {
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
+  verifyBtnText: { ...typography.caption, color: colors.primary },
+  verifyBody: { marginTop: spacing.md },
+  verifyDevHint: { ...typography.caption, color: colors.primary, marginBottom: spacing.sm },
+  verifyRow: { flexDirection: 'row', gap: spacing.sm },
+  verifyInput: {
+    flex: 1,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    color: colors.text,
+    ...typography.body,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  verifyConfirm: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyConfirmText: { ...typography.h3, color: colors.primaryText },
+  verifyErr: { ...typography.caption, color: colors.danger, marginTop: spacing.sm },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
   toggleRow: {
     flexDirection: 'row',

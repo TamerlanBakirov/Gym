@@ -1,10 +1,14 @@
 import { env } from '../../env.js';
 import { ApiError } from '../../lib/http.js';
-import { hashPassword, randomToken, verifyPassword } from '../../lib/crypto.js';
+import { hashPassword, randomCode, randomToken, verifyPassword } from '../../lib/crypto.js';
 import { signAccessToken } from '../../lib/jwt.js';
+import { sendMail } from '../../lib/mailer.js';
 import { profilesRepo, usersRepo } from '../users/users.repo.js';
 import { tokensRepo } from './tokens.repo.js';
+import { authTokensRepo } from './authTokens.repo.js';
 import type { Profile, User } from '../../types.js';
+
+const CODE_TTL_MS = 15 * 60 * 1000;
 
 export interface AuthResult {
   user: User;
@@ -55,5 +59,51 @@ export const authService = {
 
   async logout(refreshToken: string): Promise<void> {
     if (refreshToken) await tokensRepo.revoke(refreshToken);
+  },
+
+  /** Create + "email" an email-verification code. Returns the code (for dev use). */
+  async requestEmailVerification(userId: string, email: string): Promise<string> {
+    const code = randomCode();
+    await authTokensRepo.create(userId, 'verify', code, new Date(Date.now() + CODE_TTL_MS));
+    await sendMail({
+      to: email,
+      subject: 'Verify your Forge email',
+      text: `Your verification code is ${code}. It expires in 15 minutes.`,
+    });
+    return code;
+  },
+
+  async confirmEmailVerification(userId: string, code: string): Promise<void> {
+    const ok = await authTokensRepo.consume(userId, 'verify', code);
+    if (!ok) throw ApiError.badRequest('Invalid or expired code');
+    await usersRepo.setEmailVerified(userId, true);
+  },
+
+  /**
+   * Start a password reset. Always resolves (no account enumeration).
+   * Returns the code when a matching account exists, else null.
+   */
+  async requestPasswordReset(email: string): Promise<string | null> {
+    const found = await usersRepo.findByEmail(email.trim().toLowerCase());
+    if (!found) return null;
+    const code = randomCode();
+    await authTokensRepo.create(found.user.id, 'reset', code, new Date(Date.now() + CODE_TTL_MS));
+    await sendMail({
+      to: found.user.email,
+      subject: 'Reset your Forge password',
+      text: `Your password reset code is ${code}. It expires in 15 minutes.`,
+    });
+    return code;
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+    const found = await usersRepo.findByEmail(email.trim().toLowerCase());
+    if (!found) throw ApiError.badRequest('Invalid or expired code');
+    const ok = await authTokensRepo.consume(found.user.id, 'reset', code);
+    if (!ok) throw ApiError.badRequest('Invalid or expired code');
+    const passwordHash = await hashPassword(newPassword);
+    await usersRepo.setPassword(found.user.id, passwordHash);
+    // Invalidate existing sessions after a password change.
+    await tokensRepo.revokeAllForUser(found.user.id);
   },
 };

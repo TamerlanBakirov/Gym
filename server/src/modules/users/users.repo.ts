@@ -7,6 +7,7 @@ interface UserRow {
   email: string;
   password_hash: string;
   name: string;
+  email_verified: number;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +18,7 @@ const toUser = (r: UserRow): User => ({
   id: r.id,
   email: r.email,
   name: r.name,
+  emailVerified: !!r.email_verified,
   createdAt: r.created_at,
 });
 
@@ -34,7 +36,7 @@ export const usersRepo = {
       `INSERT INTO profiles (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
       [id, ts, ts]
     );
-    return { id, email, name, createdAt: ts };
+    return { id, email, name, emailVerified: false, createdAt: ts };
   },
 
   async findByEmail(email: string): Promise<(UserRow & { user: User }) | null> {
@@ -45,6 +47,22 @@ export const usersRepo = {
   async findById(id: string): Promise<User | null> {
     const row = await db.one<UserRow>(`SELECT * FROM users WHERE id = ?`, [id]);
     return row ? toUser(row) : null;
+  },
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    await db.run(`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`, [
+      passwordHash,
+      now(),
+      userId,
+    ]);
+  },
+
+  async setEmailVerified(userId: string, verified: boolean): Promise<void> {
+    await db.run(`UPDATE users SET email_verified = ?, updated_at = ? WHERE id = ?`, [
+      verified ? 1 : 0,
+      now(),
+      userId,
+    ]);
   },
 };
 
