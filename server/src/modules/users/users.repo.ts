@@ -1,0 +1,172 @@
+import { db } from '../../db/index.js';
+import { uid } from '../../lib/crypto.js';
+import type { Profile, User } from '../../types.js';
+
+interface UserRow {
+  id: string;
+  email: string;
+  password_hash: string;
+  name: string;
+  email_verified: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const now = () => new Date().toISOString();
+
+const toUser = (r: UserRow): User => ({
+  id: r.id,
+  email: r.email,
+  name: r.name,
+  emailVerified: !!r.email_verified,
+  createdAt: r.created_at,
+});
+
+export const usersRepo = {
+  async create(email: string, passwordHash: string, name: string): Promise<User> {
+    const id = uid();
+    const ts = now();
+    await db.run(
+      `INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, email, passwordHash, name, ts, ts]
+    );
+    // Create an empty profile alongside the user.
+    await db.run(
+      `INSERT INTO profiles (user_id, created_at, updated_at) VALUES (?, ?, ?)`,
+      [id, ts, ts]
+    );
+    return { id, email, name, emailVerified: false, createdAt: ts };
+  },
+
+  async findByEmail(email: string): Promise<(UserRow & { user: User }) | null> {
+    const row = await db.one<UserRow>(`SELECT * FROM users WHERE email = ?`, [email]);
+    return row ? { ...row, user: toUser(row) } : null;
+  },
+
+  async findById(id: string): Promise<User | null> {
+    const row = await db.one<UserRow>(`SELECT * FROM users WHERE id = ?`, [id]);
+    return row ? toUser(row) : null;
+  },
+
+  async setPassword(userId: string, passwordHash: string): Promise<void> {
+    await db.run(`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`, [
+      passwordHash,
+      now(),
+      userId,
+    ]);
+  },
+
+  async setEmailVerified(userId: string, verified: boolean): Promise<void> {
+    await db.run(`UPDATE users SET email_verified = ?, updated_at = ? WHERE id = ?`, [
+      verified ? 1 : 0,
+      now(),
+      userId,
+    ]);
+  },
+};
+
+interface ProfileRow {
+  user_id: string;
+  gender: string | null;
+  goal: string | null;
+  level: string | null;
+  body_type: string | null;
+  target_areas: string;
+  equipment: string | null;
+  days_per_week: number;
+  age_range: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  target_weight_kg: number | null;
+  has_onboarded: number;
+  reminders: number;
+  units: string;
+  expo_push_token: string | null;
+}
+
+const toProfile = (r: ProfileRow): Profile => ({
+  gender: r.gender,
+  goal: r.goal,
+  level: r.level,
+  bodyType: r.body_type,
+  targetAreas: safeParseArray(r.target_areas),
+  equipment: r.equipment,
+  daysPerWeek: r.days_per_week,
+  ageRange: r.age_range,
+  heightCm: r.height_cm,
+  weightKg: r.weight_kg,
+  targetWeightKg: r.target_weight_kg,
+  hasOnboarded: !!r.has_onboarded,
+  reminders: !!r.reminders,
+  units: (r.units as Profile['units']) ?? 'metric',
+  expoPushToken: r.expo_push_token,
+});
+
+function safeParseArray(json: string): string[] {
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+export interface ProfileInput {
+  gender?: string;
+  goal?: string;
+  level?: string;
+  bodyType?: string;
+  targetAreas?: string[];
+  equipment?: string;
+  daysPerWeek?: number;
+  ageRange?: string;
+  heightCm?: number;
+  weightKg?: number;
+  targetWeightKg?: number;
+  hasOnboarded?: boolean;
+  reminders?: boolean;
+  units?: 'metric' | 'imperial';
+  expoPushToken?: string | null;
+}
+
+export const profilesRepo = {
+  async get(userId: string): Promise<Profile | null> {
+    const row = await db.one<ProfileRow>(`SELECT * FROM profiles WHERE user_id = ?`, [userId]);
+    return row ? toProfile(row) : null;
+  },
+
+  /** Partial update of any profile fields. Returns the updated profile. */
+  async update(userId: string, input: ProfileInput): Promise<Profile> {
+    const map: Record<string, unknown> = {
+      gender: input.gender,
+      goal: input.goal,
+      level: input.level,
+      body_type: input.bodyType,
+      target_areas: input.targetAreas ? JSON.stringify(input.targetAreas) : undefined,
+      equipment: input.equipment,
+      days_per_week: input.daysPerWeek,
+      age_range: input.ageRange,
+      height_cm: input.heightCm,
+      weight_kg: input.weightKg,
+      target_weight_kg: input.targetWeightKg,
+      has_onboarded:
+        input.hasOnboarded === undefined ? undefined : input.hasOnboarded ? 1 : 0,
+      reminders: input.reminders === undefined ? undefined : input.reminders ? 1 : 0,
+      units: input.units,
+      expo_push_token: input.expoPushToken,
+    };
+
+    const cols = Object.entries(map).filter(([, v]) => v !== undefined);
+    if (cols.length > 0) {
+      const setClause = cols.map(([k]) => `${k} = ?`).join(', ');
+      const values = cols.map(([, v]) => v);
+      await db.run(`UPDATE profiles SET ${setClause}, updated_at = ? WHERE user_id = ?`, [
+        ...values,
+        new Date().toISOString(),
+        userId,
+      ]);
+    }
+    return (await this.get(userId))!;
+  },
+};
