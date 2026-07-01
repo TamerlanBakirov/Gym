@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');fs.mkdirSync('dist/db',{recursive:true});for(const f of fs.readdirSync('src/db').filter(f=>f.endsWith('.sql')))fs.copyFileSync('src/db/'+f,'dist/db/'+f)\"",
     "start": "node --experimental-sqlite --disable-warning=ExperimentalWarning dist/index.js",
     "seed": "node --experimental-sqlite --disable-warning=ExperimentalWarning --import tsx src/db/seed.ts",
+    "test": "node --experimental-sqlite --disable-warning=ExperimentalWarning --import tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "license": "MIT",

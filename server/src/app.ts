@@ -17,7 +17,7 @@ export function createApp() {
     })
   );
   app.use(express.json({ limit: '1mb' }));
-  app.use(morgan(isProd ? 'combined' : 'dev'));
+  if (env.NODE_ENV !== 'test') app.use(morgan(isProd ? 'combined' : 'dev'));
 
   app.get('/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
